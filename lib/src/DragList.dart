@@ -43,6 +43,7 @@ class _DragListState<T> extends State<DragList<T>>
   OverlayState get _overlay => Overlay.of(context);
   double get _itemHalfExtent => widget.itemExtent / 2;
   RenderBox get _listBox => context.findRenderObject();
+  bool get _isDragging => _dragIndex != null;
 
   @override
   void initState() {
@@ -101,7 +102,7 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   double _calcBoundedDelta(double delta) {
-    final minDelta = -_localStart + _itemHalfExtent;
+    final minDelta = -_localStart + _itemStart;
     final maxDelta = _listBox.size.height - _localStart - _itemHalfExtent;
     return delta < minDelta ? minDelta : delta > maxDelta ? maxDelta : delta;
   }
@@ -185,7 +186,7 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragStop(int index) {
-    if (_dragIndex != null) {
+    if (_isDragging) {
       _runStopAnim();
     }
   }
@@ -197,17 +198,17 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragUpdate(int index, PointerMoveEvent details) {
-    _updateDelta(details.delta.dy);
-    _updateHoverIndex();
+    if (_isDragging) {
+      _updateDelta(details.delta.dy);
+      _updateHoverIndex();
+    }
   }
 
   void _updateHoverIndex() {
-    if (_dragIndex != null) {
-      final halfExtent = _delta > 0 ? _itemHalfExtent : -_itemHalfExtent;
-      final index = _dragIndex + (_delta + halfExtent) ~/ widget.itemExtent;
-      if (_hoverIndex != index) {
-        setState(() => _hoverIndex = index);
-      }
+    final halfExtent = _delta > 0 ? _itemHalfExtent : -_itemHalfExtent;
+    final index = _dragIndex + (_delta + halfExtent) ~/ widget.itemExtent;
+    if (_hoverIndex != index) {
+      setState(() => _hoverIndex = index);
     }
   }
 
