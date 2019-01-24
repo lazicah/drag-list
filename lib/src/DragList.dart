@@ -80,18 +80,22 @@ class _DragListState<T> extends State<DragList<T>>
     _updateDelta(toAdd);
   }
 
-  Widget _buildOverlay(BuildContext context) {
-    final dragWidget = widget.builder(
-      context,
-      widget.items[_dragIndex],
-      widget.handleBuilder(context),
-    );
-    return Positioned(
-      left: 0.0,
-      top: _globalStart - _itemStart + _delta,
-      right: 0.0,
-      child: Material(elevation: _elevAnim.value, child: dragWidget),
-    );
+  void _onDragAnimEnd(AnimationStatus status) {
+    if (!_animator.isAnimating) {
+      _lastAnimDelta = 0.0;
+      if (_animator.isDismissed) {
+        _onDragSettled();
+      }
+    }
+    setState(() {});
+  }
+
+  void _onDragSettled() {
+    _dragOverlay.remove();
+    if (_dragIndex != _hoverIndex) {
+      widget.onItemReorder(_dragIndex, _hoverIndex);
+    }
+    _clearState();
   }
 
   void _clearState() {
@@ -105,30 +109,20 @@ class _DragListState<T> extends State<DragList<T>>
     _hoverIndex = null;
   }
 
-  void _updateDelta(double delta) {
-    final oldDelta = _delta;
-    _totalDelta += delta;
-    _delta = _calcBoundedDelta(_totalDelta);
-    if (oldDelta.toInt() != _delta.toInt()) {
-      _overlay.setState(() {});
-    }
-  }
-
-  double _calcBoundedDelta(double delta) {
-    final minDelta = _itemStart - _localStart;
-    final maxDelta = minDelta + _listBox.size.height - widget.itemExtent;
-    return delta < minDelta ? minDelta : delta > maxDelta ? maxDelta : delta;
-  }
-
-  void _onDragAnimEnd(AnimationStatus status) {
-    _lastAnimDelta = 0.0;
-    if (_animator.isDismissed) {
-      _dragOverlay.remove();
-      if (_dragIndex != _hoverIndex) {
-        widget.onItemReorder(_dragIndex, _hoverIndex);
-      }
-      setState(_clearState);
-    }
+  Widget _buildOverlay(BuildContext context) {
+    return Positioned(
+      left: _listBox.localToGlobal(Offset.zero).dx,
+      top: _globalStart - _itemStart + _delta,
+      width: _listBox.size.width,
+      child: Material(
+        elevation: _elevAnim.value,
+        child: widget.builder(
+          context,
+          widget.items[_dragIndex],
+          widget.handleBuilder(context),
+        ),
+      ),
+    );
   }
 
   @override
@@ -141,6 +135,7 @@ class _DragListState<T> extends State<DragList<T>>
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
+        physics: _animator.isAnimating ? NeverScrollableScrollPhysics() : null,
         itemExtent: widget.itemExtent,
         controller: _scrollController,
         itemCount: widget.items.length,
@@ -182,7 +177,7 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragStart(int index) {
-    if (_dragIndex == null) {
+    if (!_isDragging) {
       _overlay.insert(_dragOverlay);
       _runStartAnim();
       setState(() {
@@ -200,14 +195,10 @@ class _DragListState<T> extends State<DragList<T>>
 
   void _onItemDragStop(int index) {
     if (_isDragging) {
-      _runStopAnim();
+      final begin = (_hoverIndex - _dragIndex) * widget.itemExtent - _delta;
+      _deltaAnim = _animator.drive(Tween(begin: begin, end: 0.0));
+      _animator.reverse();
     }
-  }
-
-  void _runStopAnim() {
-    final begin = (_hoverIndex - _dragIndex) * widget.itemExtent - _delta;
-    _deltaAnim = _animator.drive(Tween(begin: begin, end: 0.0));
-    _animator.reverse();
   }
 
   void _onItemDragUpdate(int index, PointerMoveEvent details) {
@@ -215,6 +206,21 @@ class _DragListState<T> extends State<DragList<T>>
       _updateDelta(details.delta.dy);
       _updateHoverIndex();
     }
+  }
+
+  void _updateDelta(double delta) {
+    final oldDelta = _delta;
+    _totalDelta += delta;
+    _delta = _calcBoundedDelta(_totalDelta);
+    if (oldDelta.toInt() != _delta.toInt()) {
+      _overlay.setState(() {});
+    }
+  }
+
+  double _calcBoundedDelta(double delta) {
+    final minDelta = _itemStart - _localStart;
+    final maxDelta = minDelta + _listBox.size.height - widget.itemExtent;
+    return delta < minDelta ? minDelta : delta > maxDelta ? maxDelta : delta;
   }
 
   void _updateHoverIndex() {
