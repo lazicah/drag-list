@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 void main() => runApp(CountriesPage());
 
 class CountriesPage extends StatelessWidget {
+  final _itemHeight = 72.0;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -12,22 +14,26 @@ class CountriesPage extends StatelessWidget {
         appBar: AppBar(title: Text('Largest countries')),
         body: DragList<String>(
           items: _countries,
-          itemExtent: 64.0,
+          itemExtent: _itemHeight,
           handleBuilder: (_) => Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Icon(Icons.drag_handle),
               ),
           builder: (_, item, handle) {
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ListTile(
-                title: Text(item),
-                trailing: handle,
+            return Container(
+              height: _itemHeight,
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Row(children: [
+                  Expanded(child: Center(child: Text(item))),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [handle],
+                  ),
+                ]),
               ),
             );
           },
-          onItemReorder: (int from, int to) =>
-              _countries.insert(to, _countries.removeAt(from)),
         ),
       ),
     );

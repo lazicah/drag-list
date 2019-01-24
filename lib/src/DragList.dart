@@ -5,19 +5,33 @@ typedef Widget DragItemBuilder<T>(BuildContext context, T item, Widget handle);
 typedef void ItemReorderCallback(int from, int to);
 
 class DragList<T> extends StatefulWidget {
-  const DragList({
+  DragList({
     @required this.items,
+    @required this.itemExtent,
     @required this.handleBuilder,
     @required this.builder,
-    @required this.itemExtent,
-    @required this.onItemReorder,
-  });
+    ItemReorderCallback onItemReorder,
+    double handleAlignment = 0.0,
+  })  : assert(handleAlignment >= -1.0 && handleAlignment <= 1.0,
+            'Handle alignment has to be in bounds (-1, 1) inclusive. Passed value was: $handleAlignment.'),
+        this.itemTopExtent = _calcTopExtent(itemExtent, handleAlignment),
+        this.itemBottomExtent =
+            itemExtent - _calcTopExtent(itemExtent, handleAlignment),
+        this.onItemReorder = onItemReorder ?? _reorderDefaultFun(items);
 
   final List<T> items;
+  final double itemExtent;
+  final double itemTopExtent;
+  final double itemBottomExtent;
   final WidgetBuilder handleBuilder;
   final DragItemBuilder<T> builder;
-  final double itemExtent;
   final ItemReorderCallback onItemReorder;
+
+  static double _calcTopExtent(double extent, double alignment) =>
+      extent * (1 + alignment) / 2;
+
+  static ItemReorderCallback _reorderDefaultFun<T>(List<T> items) =>
+      (int from, int to) => items.insert(to, items.removeAt(from));
 
   @override
   _DragListState<T> createState() => _DragListState<T>();
@@ -41,7 +55,6 @@ class _DragListState<T> extends State<DragList<T>>
   Animation<double> _elevAnim;
 
   OverlayState get _overlay => Overlay.of(context);
-  double get _itemHalfExtent => widget.itemExtent / 2;
   RenderBox get _listBox => context.findRenderObject();
   bool get _isDragging => _dragIndex != null;
 
@@ -102,8 +115,8 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   double _calcBoundedDelta(double delta) {
-    final minDelta = -_localStart + _itemStart;
-    final maxDelta = _listBox.size.height - _localStart - _itemHalfExtent;
+    final minDelta = _itemStart - _localStart;
+    final maxDelta = minDelta + _listBox.size.height - widget.itemExtent;
     return delta < minDelta ? minDelta : delta > maxDelta ? maxDelta : delta;
   }
 
@@ -180,7 +193,7 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _runStartAnim() {
-    final end = _itemStart - _itemHalfExtent;
+    final end = _itemStart - widget.itemTopExtent;
     _deltaAnim = _animator.drive(Tween(begin: 0.0, end: end));
     _animator.forward();
   }
@@ -205,8 +218,9 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _updateHoverIndex() {
-    final halfExtent = _delta > 0 ? _itemHalfExtent : -_itemHalfExtent;
-    final index = _dragIndex + (_delta + halfExtent) ~/ widget.itemExtent;
+    final halfExtent = widget.itemExtent / 2;
+    final itemExtent = _delta > 0 ? halfExtent : -halfExtent;
+    final index = _dragIndex + (_delta + itemExtent) ~/ widget.itemExtent;
     if (_hoverIndex != index) {
       setState(() => _hoverIndex = index);
     }
