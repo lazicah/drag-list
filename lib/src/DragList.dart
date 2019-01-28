@@ -12,28 +12,17 @@ class DragList<T> extends StatefulWidget {
     @required this.itemExtent,
     @required this.handleBuilder,
     @required this.builder,
-    ItemReorderCallback onItemReorder,
-    double handleAlignment = 0.0,
-  })  : assert(handleAlignment >= -1.0 && handleAlignment <= 1.0,
-            'Handle alignment has to be in bounds (-1, 1) inclusive. Passed value was: $handleAlignment.'),
-        this.itemTopExtent = _calcTopExtent(itemExtent, handleAlignment),
-        this.itemBottomExtent =
-            itemExtent - _calcTopExtent(itemExtent, handleAlignment),
-        this.onItemReorder = onItemReorder ?? _reorderDefaultFun(items);
+    this.handleAlignment = 0.0,
+    this.onItemReorder,
+  }) : assert(handleAlignment >= -1.0 && handleAlignment <= 1.0,
+            'Handle alignment has to be in bounds (-1, 1) inclusive. Passed value was: $handleAlignment.');
 
   final List<T> items;
   final double itemExtent;
-  final double itemTopExtent;
-  final double itemBottomExtent;
+  final double handleAlignment;
   final WidgetBuilder handleBuilder;
   final DragItemBuilder<T> builder;
   final ItemReorderCallback onItemReorder;
-
-  static double _calcTopExtent(double extent, double alignment) =>
-      extent * (1 + alignment) / 2;
-
-  static ItemReorderCallback _reorderDefaultFun<T>(List<T> items) =>
-      (int from, int to) => items.insert(to, items.removeAt(from));
 
   @override
   _DragListState<T> createState() => _DragListState<T>();
@@ -98,10 +87,14 @@ class _DragListState<T> extends State<DragList<T>>
   void _onDragSettled() {
     _dragOverlay.remove();
     if (_dragIndex != _hoverIndex) {
-      widget.onItemReorder(_dragIndex, _hoverIndex);
+      (widget.onItemReorder ?? _defaultOnItemReorder)
+          .call(_dragIndex, _hoverIndex);
     }
     _clearState();
   }
+
+  void _defaultOnItemReorder(int from, int to) =>
+      widget.items.insert(to, widget.items.removeAt(from));
 
   void _clearState() {
     _lastAnimDelta = 0.0;
@@ -210,10 +203,13 @@ class _DragListState<T> extends State<DragList<T>>
   void _runStartAnim() {
     final transEnd = 0.0;
     _transAnim = _animator.drive(Tween(begin: 0.0, end: transEnd));
-    final deltaEnd = _itemStart - widget.itemTopExtent;
+    final deltaEnd = _itemStart - _calcItemTopExtent();
     _deltaAnim = _animator.drive(Tween(begin: 0.0, end: deltaEnd));
     _animator.forward();
   }
+
+  double _calcItemTopExtent() =>
+      widget.itemExtent * (1 + widget.handleAlignment) / 2;
 
   void _onItemDragStop(int index) {
     if (_isDragging) {
