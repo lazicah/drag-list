@@ -35,10 +35,10 @@ class _DragListState<T> extends State<DragList<T>>
   bool _hasPendingDrag;
   bool _isDropping;
   double _totalDelta;
-  double _delta;
+  double _dragDelta;
   double _localStart;
   double _itemStart;
-  double _lastAnimDelta;
+  double _lastFrameDelta;
   OverlayEntry _dragOverlay;
   ScrollController _scrollController;
 
@@ -51,14 +51,14 @@ class _DragListState<T> extends State<DragList<T>>
   RenderBox get _listBox => context.findRenderObject();
   bool get _isDragging => _dragIndex != null;
   double get _scrollOffset => _scrollController.offset;
-  bool get _dragsUpwards => _delta < 0;
+  bool get _dragsUpwards => _dragDelta < 0;
 
   @override
   void initState() {
     super.initState();
     _clearState();
     _scrollController = ScrollController();
-    _animator = _createAnimator(Duration(milliseconds: 3000));
+    _animator = _createAnimator(Duration(milliseconds: 500));
     _elevAnim = _animator.drive(Tween(begin: 0.0, end: 2.0));
     _dragOverlay = OverlayEntry(builder: _buildOverlay);
   }
@@ -70,14 +70,14 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _onAnimUpdate() {
-    final toAdd = _deltaAnim.value - _lastAnimDelta;
-    _lastAnimDelta = _deltaAnim.value;
+    final toAdd = _deltaAnim.value - _lastFrameDelta;
+    _lastFrameDelta = _deltaAnim.value;
     _updateDelta(toAdd);
   }
 
   void _onAnimStatus(AnimationStatus status) {
     if (!_animator.isAnimating) {
-      _lastAnimDelta = 0.0;
+      _lastFrameDelta = 0.0;
       if (_animator.isDismissed) {
         _onDragSettled();
       }
@@ -98,9 +98,9 @@ class _DragListState<T> extends State<DragList<T>>
       widget.items.insert(to, widget.items.removeAt(from));
 
   void _clearState() {
-    _lastAnimDelta = 0.0;
+    _lastFrameDelta = 0.0;
     _totalDelta = 0.0;
-    _delta = 0.0;
+    _dragDelta = 0.0;
     _hasPendingDrag = false;
     _isDropping = false;
     _localStart = null;
@@ -111,7 +111,7 @@ class _DragListState<T> extends State<DragList<T>>
 
   Widget _buildOverlay(BuildContext context) {
     final listPos = _listBox.localToGlobal(Offset.zero);
-    final itemTop = _localStart - _itemStart + _delta;
+    final itemTop = _localStart - _itemStart + _dragDelta;
     return Positioned(
       top: listPos.dy,
       height: _listBox.size.height,
@@ -199,17 +199,17 @@ class _DragListState<T> extends State<DragList<T>>
         _dragIndex = index;
         _hoverIndex = index;
       });
-      _runStartAnim();
+      _runRaiseAnim();
     }
   }
 
-  void _runStartAnim() {
+  void _runRaiseAnim() {
     _transAnim = _animator.drive(Tween(begin: _calcTranslation(), end: 0.0));
-    _deltaAnim = _animator.drive(Tween(begin: 0.0, end: _calcStartDelta()));
+    _deltaAnim = _animator.drive(Tween(begin: 0.0, end: _calcRaiseDelta()));
     _animator.forward();
   }
 
-  double _calcStartDelta() {
+  double _calcRaiseDelta() {
     final itemTopExtent = widget.itemExtent * (1 + widget.handleAlignment) / 2;
     return _itemStart - itemTopExtent;
   }
@@ -217,15 +217,15 @@ class _DragListState<T> extends State<DragList<T>>
   void _onItemDragStop(int index) {
     if (_isDragging && !_isDropping) {
       _totalDelta = _calcBoundedDelta(_totalDelta);
-      _runStopAnim();
+      _runDropAnim();
     }
   }
 
-  void _runStopAnim() {
+  void _runDropAnim() {
     _isDropping = true;
-    final stopDelta = _calcStopDelta();
-    _lastAnimDelta += stopDelta * (1 - _animator.value);
-    _deltaAnim = _animator.drive(Tween(begin: stopDelta, end: 0.0));
+    final delta = _calcDropDelta();
+    _lastFrameDelta += delta * (1 - _animator.value);
+    _deltaAnim = _animator.drive(Tween(begin: delta, end: 0.0));
     final trans = _calcTranslation();
     _transAnim = _animator
         .drive(Tween(begin: trans, end: trans * (1 - 1 / _animator.value)));
@@ -242,11 +242,11 @@ class _DragListState<T> extends State<DragList<T>>
     return clip * widget.itemExtent;
   }
 
-  double _calcStopDelta() {
+  double _calcDropDelta() {
     final rawDelta = (_hoverIndex - _dragIndex) * widget.itemExtent;
-    final totalStopDelta =
-        _calcBoundedDelta(rawDelta) - (_delta - _lastAnimDelta);
-    return totalStopDelta / _animator.value;
+    final totalDropDelta =
+        _calcBoundedDelta(rawDelta) - (_dragDelta - _lastFrameDelta);
+    return totalDropDelta / _animator.value;
   }
 
   void _onItemDragUpdate(int index, PointerMoveEvent details) {
@@ -258,7 +258,7 @@ class _DragListState<T> extends State<DragList<T>>
 
   void _updateDelta(double delta) {
     _totalDelta += delta;
-    _delta = _calcBoundedDelta(_totalDelta);
+    _dragDelta = _calcBoundedDelta(_totalDelta);
     _overlay.setState(() {});
   }
 
@@ -270,7 +270,8 @@ class _DragListState<T> extends State<DragList<T>>
 
   void _updateHoverIndex() {
     final halfExtent = widget.itemExtent / 2 * (_dragsUpwards ? -1 : 1);
-    final rawIndex = _dragIndex + (_delta + halfExtent) ~/ widget.itemExtent;
+    final rawIndex =
+        _dragIndex + (_dragDelta + halfExtent) ~/ widget.itemExtent;
     final index = min(max(rawIndex, 0), widget.items.length - 1);
     if (_hoverIndex != index) {
       setState(() => _hoverIndex = index);
