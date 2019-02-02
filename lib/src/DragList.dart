@@ -32,6 +32,8 @@ class _DragListState<T> extends State<DragList<T>>
     with SingleTickerProviderStateMixin {
   int _dragIndex;
   int _hoverIndex;
+  bool _hasPendingDrag;
+  bool _isDropping;
   double _totalDelta;
   double _delta;
   double _localStart;
@@ -56,7 +58,7 @@ class _DragListState<T> extends State<DragList<T>>
     super.initState();
     _clearState();
     _scrollController = ScrollController();
-    _animator = _createAnimator(Duration(milliseconds: 1000));
+    _animator = _createAnimator(Duration(milliseconds: 3000));
     _elevAnim = _animator.drive(Tween(begin: 0.0, end: 2.0));
     _dragOverlay = OverlayEntry(builder: _buildOverlay);
   }
@@ -64,7 +66,7 @@ class _DragListState<T> extends State<DragList<T>>
   AnimationController _createAnimator(Duration duration) {
     return AnimationController(vsync: this, duration: duration)
       ..addListener(_onAnimUpdate)
-      ..addStatusListener(_onDragAnimEnd);
+      ..addStatusListener(_onAnimStatus);
   }
 
   void _onAnimUpdate() {
@@ -73,7 +75,7 @@ class _DragListState<T> extends State<DragList<T>>
     _updateDelta(toAdd);
   }
 
-  void _onDragAnimEnd(AnimationStatus status) {
+  void _onAnimStatus(AnimationStatus status) {
     if (!_animator.isAnimating) {
       _lastAnimDelta = 0.0;
       if (_animator.isDismissed) {
@@ -99,6 +101,8 @@ class _DragListState<T> extends State<DragList<T>>
     _lastAnimDelta = 0.0;
     _totalDelta = 0.0;
     _delta = 0.0;
+    _hasPendingDrag = false;
+    _isDropping = false;
     _localStart = null;
     _itemStart = null;
     _dragIndex = null;
@@ -155,8 +159,8 @@ class _DragListState<T> extends State<DragList<T>>
           final itemIndex = _calcItemIndex(index);
           final itemWidget = _buildDragItem(context, itemIndex);
           return index == _hoverIndex
-              ? Container(
-                  color: Colors.grey,
+              ? Opacity(
+                  opacity: 0.0,
                   child: AbsorbPointer(child: itemWidget),
                 )
               : itemWidget;
@@ -189,7 +193,7 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragStart(int index) {
-    if (!_isDragging) {
+    if (!_isDragging && _hasPendingDrag) {
       _overlay.insert(_dragOverlay);
       setState(() {
         _dragIndex = index;
@@ -211,15 +215,20 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragStop(int index) {
-    if (_isDragging) {
+    if (_isDragging && !_isDropping) {
       _totalDelta = _calcBoundedDelta(_totalDelta);
       _runStopAnim();
     }
   }
 
   void _runStopAnim() {
-    _transAnim = _animator.drive(Tween(begin: _calcTranslation(), end: 0.0));
-    _deltaAnim = _animator.drive(Tween(begin: _calcStopDelta(), end: 0.0));
+    _isDropping = true;
+    final stopDelta = _calcStopDelta();
+    _lastAnimDelta += stopDelta * (1 - _animator.value);
+    _deltaAnim = _animator.drive(Tween(begin: stopDelta, end: 0.0));
+    final trans = _calcTranslation();
+    _transAnim = _animator
+        .drive(Tween(begin: trans, end: trans * (1 - 1 / _animator.value)));
     _animator.reverse();
   }
 
@@ -234,12 +243,14 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   double _calcStopDelta() {
-    final rawDelta = (_hoverIndex - _dragIndex) * widget.itemExtent - _delta;
-    return _calcBoundedDelta(rawDelta + _delta) - _delta;
+    final rawDelta = (_hoverIndex - _dragIndex) * widget.itemExtent;
+    final totalStopDelta =
+        _calcBoundedDelta(rawDelta) - (_delta - _lastAnimDelta);
+    return totalStopDelta / _animator.value;
   }
 
   void _onItemDragUpdate(int index, PointerMoveEvent details) {
-    if (_isDragging) {
+    if (_isDragging && !_isDropping) {
       _updateDelta(details.delta.dy);
       _updateHoverIndex();
     }
@@ -267,7 +278,10 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragTouch(int index, PointerDownEvent event) {
-    _localStart = _listBox.globalToLocal(event.position).dy;
-    _itemStart = (_localStart + _scrollOffset) % widget.itemExtent;
+    if (!_isDragging) {
+      _localStart = _listBox.globalToLocal(event.position).dy;
+      _itemStart = (_localStart + _scrollOffset) % widget.itemExtent;
+      _hasPendingDrag = true;
+    }
   }
 }
