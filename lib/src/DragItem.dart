@@ -15,6 +15,7 @@ class DragItem extends StatefulWidget {
     @required this.extent,
     @required this.status,
     @required this.animDuration,
+    @required this.scrollDirection,
   }) : super(key: key);
 
   final DragWidgetBuilder builder;
@@ -26,6 +27,7 @@ class DragItem extends StatefulWidget {
   final double extent;
   final DragItemStatus status;
   final Duration animDuration;
+  final Axis scrollDirection;
 
   @override
   DragItemState createState() => DragItemState();
@@ -71,20 +73,33 @@ class DragItemState extends State<DragItem>
   }
 
   bool get _hasBeenHovered =>
-      (_prevStatus == DragItemStatus.BELOW &&
-          _status == DragItemStatus.ABOVE) ||
-      (_prevStatus == DragItemStatus.ABOVE && _status == DragItemStatus.BELOW);
+      (_prevStatus == DragItemStatus.AFTER &&
+          _status == DragItemStatus.BEFORE) ||
+      (_prevStatus == DragItemStatus.BEFORE && _status == DragItemStatus.AFTER);
 
   void _updateTransAnim() {
-    final trans = widget.extent * (_status == DragItemStatus.ABOVE ? 1 : -1);
+    final trans = widget.extent * (_status == DragItemStatus.BEFORE ? 1 : -1);
     _transAnim = _animator.drive(Tween(begin: trans, end: 0.0));
     _animator.forward(from: 1 - _animator.value);
   }
 
   Widget _buildWidget() {
-    final handle = _wrapHandle();
-    final item = widget.builder(context, handle);
-    return _wrapItem(item);
+    return Opacity(
+      opacity: _status == DragItemStatus.HOVER ? 0.0 : 1.0,
+      child: AbsorbPointer(
+        absorbing: _status == DragItemStatus.HOVER,
+        child: AnimatedBuilder(
+          animation: _transAnim,
+          child: widget.builder(context, _wrapHandle()),
+          builder: (_, child) => Transform.translate(
+                offset: widget.scrollDirection == Axis.vertical
+                    ? Offset(0.0, _transAnim.value)
+                    : Offset(_transAnim.value, 0.0),
+                child: child,
+              ),
+        ),
+      ),
+    );
   }
 
   Widget _wrapHandle() {
@@ -97,23 +112,6 @@ class DragItemState extends State<DragItem>
         child: GestureDetector(
           onLongPress: widget.onDragStart,
           child: widget.handle,
-        ),
-      ),
-    );
-  }
-
-  Widget _wrapItem(Widget itemWidget) {
-    return Opacity(
-      opacity: _status == DragItemStatus.HOVER ? 0.0 : 1.0,
-      child: AbsorbPointer(
-        absorbing: _status == DragItemStatus.HOVER,
-        child: AnimatedBuilder(
-          animation: _transAnim,
-          child: itemWidget,
-          builder: (_, child) => Transform.translate(
-                offset: Offset(0.0, _transAnim.value),
-                child: child,
-              ),
         ),
       ),
     );
