@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:drag_list/src/DragItem.dart';
+import 'package:drag_list/src/DragItemStatus.dart';
 import 'package:flutter/material.dart';
 
 typedef Widget DragItemBuilder<T>(BuildContext context, T item, Widget handle);
@@ -12,6 +13,7 @@ class DragList<T> extends StatefulWidget {
     @required this.itemExtent,
     @required this.handleBuilder,
     @required this.builder,
+    this.animDuration = const Duration(milliseconds: 300),
     this.handleAlignment = 0.0,
     this.onItemReorder,
   }) : assert(handleAlignment >= -1.0 && handleAlignment <= 1.0,
@@ -20,6 +22,7 @@ class DragList<T> extends StatefulWidget {
   final List<T> items;
   final double itemExtent;
   final double handleAlignment;
+  final Duration animDuration;
   final WidgetBuilder handleBuilder;
   final DragItemBuilder<T> builder;
   final ItemReorderCallback onItemReorder;
@@ -41,6 +44,7 @@ class _DragListState<T> extends State<DragList<T>>
   double _lastFrameDelta;
   OverlayEntry _dragOverlay;
   ScrollController _scrollController;
+  Map<int, GlobalKey> _itemKeys;
 
   AnimationController _animator;
   Animation<double> _deltaAnim;
@@ -57,16 +61,13 @@ class _DragListState<T> extends State<DragList<T>>
   void initState() {
     super.initState();
     _clearState();
+    _itemKeys = {};
     _scrollController = ScrollController();
-    _animator = _createAnimator(Duration(milliseconds: 500));
-    _elevAnim = _animator.drive(Tween(begin: 0.0, end: 2.0));
-    _dragOverlay = OverlayEntry(builder: _buildOverlay);
-  }
-
-  AnimationController _createAnimator(Duration duration) {
-    return AnimationController(vsync: this, duration: duration)
+    _animator = AnimationController(vsync: this, duration: widget.animDuration)
       ..addListener(_onAnimUpdate)
       ..addStatusListener(_onAnimStatus);
+    _elevAnim = _animator.drive(Tween(begin: 0.0, end: 2.0));
+    _dragOverlay = OverlayEntry(builder: _buildOverlay);
   }
 
   void _onAnimUpdate() {
@@ -90,8 +91,17 @@ class _DragListState<T> extends State<DragList<T>>
     if (_dragIndex != _hoverIndex) {
       (widget.onItemReorder ?? _defaultOnItemReorder)
           .call(_dragIndex, _hoverIndex);
+      _swapItemKeys(_dragIndex, _hoverIndex);
     }
     _clearState();
+  }
+
+  void _swapItemKeys(int from, int to) {
+    final sign = from < to ? 1 : -1;
+    final temp = _itemKeys[from];
+    List.generate((to - from).abs(), (it) => from + it * sign)
+        .forEach((it) => _itemKeys[it] = _itemKeys[it + sign]);
+    _itemKeys[to] = temp;
   }
 
   void _defaultOnItemReorder(int from, int to) =>
@@ -151,25 +161,23 @@ class _DragListState<T> extends State<DragList<T>>
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-        physics: _animator.isAnimating ? NeverScrollableScrollPhysics() : null,
-        itemExtent: widget.itemExtent,
-        controller: _scrollController,
-        itemCount: widget.items.length,
-        itemBuilder: (context, index) {
-          final itemIndex = _calcItemIndex(index);
-          final itemWidget = _buildDragItem(context, itemIndex);
-          return index == _hoverIndex
-              ? Opacity(
-                  opacity: 0.0,
-                  child: AbsorbPointer(child: itemWidget),
-                )
-              : itemWidget;
-        });
+      physics: _animator.isAnimating ? NeverScrollableScrollPhysics() : null,
+      itemExtent: widget.itemExtent,
+      controller: _scrollController,
+      itemCount: widget.items.length,
+      itemBuilder: (context, index) {
+        final itemIndex = _calcItemIndex(index);
+        return _buildDragItem(context, itemIndex, index);
+      },
+    );
   }
 
   int _calcItemIndex(int index) {
     if (_dragIndex == _hoverIndex) {
       return index;
+    }
+    if (index == _hoverIndex) {
+      return _dragIndex;
     }
     if (index > _hoverIndex && index <= _dragIndex) {
       return index - 1;
@@ -180,15 +188,19 @@ class _DragListState<T> extends State<DragList<T>>
     return index;
   }
 
-  Widget _buildDragItem(BuildContext context, int index) {
+  Widget _buildDragItem(BuildContext context, int itemIndex, int dispIndex) {
     return DragItem(
+      key: _itemKeys.putIfAbsent(itemIndex, () => GlobalKey()),
       handle: widget.handleBuilder(context),
       builder: (context, handle) =>
-          widget.builder(context, widget.items[index], handle),
-      onDragStart: () => _onItemDragStart(index),
-      onDragStop: () => _onItemDragStop(index),
-      onDragUpdate: (details) => _onItemDragUpdate(index, details),
-      onDragTouch: (event) => _onItemDragTouch(index, event),
+          widget.builder(context, widget.items[itemIndex], handle),
+      onDragStart: () => _onItemDragStart(itemIndex),
+      onDragStop: () => _onItemDragStop(itemIndex),
+      onDragUpdate: (details) => _onItemDragUpdate(itemIndex, details),
+      onDragTouch: (event) => _onItemDragTouch(itemIndex, event),
+      extent: widget.itemExtent,
+      status: DragItemStatus(dispIndex, _hoverIndex),
+      animDuration: widget.animDuration,
     );
   }
 
@@ -227,8 +239,10 @@ class _DragListState<T> extends State<DragList<T>>
     _lastFrameDelta += delta * (1 - _animator.value);
     _deltaAnim = _animator.drive(Tween(begin: delta, end: 0.0));
     final trans = _calcTranslation();
-    _transAnim = _animator
-        .drive(Tween(begin: trans, end: trans * (1 - 1 / _animator.value)));
+    _transAnim = _animator.drive(Tween(
+      begin: trans,
+      end: trans * (1 - 1 / _animator.value),
+    ));
     _animator.reverse();
   }
 
