@@ -54,6 +54,7 @@ class _DragListState<T> extends State<DragList<T>>
   Map<int, GlobalKey> _itemKeys;
 
   AnimationController _animator;
+  Animation<double> _baseAnim;
   Animation<double> _deltaAnim;
   Animation<double> _elevAnim;
   Animation<double> _transAnim;
@@ -74,7 +75,8 @@ class _DragListState<T> extends State<DragList<T>>
     _animator = AnimationController(vsync: this, duration: widget.animDuration)
       ..addListener(_onAnimUpdate)
       ..addStatusListener(_onAnimStatus);
-    _elevAnim = _animator.drive(Tween(begin: 0.0, end: 2.0));
+    _baseAnim = _animator.drive(CurveTween(curve: Curves.easeInOut));
+    _elevAnim = _baseAnim.drive(Tween(begin: 0.0, end: 2.0));
     _dragOverlay = OverlayEntry(builder: _buildOverlay);
   }
 
@@ -210,8 +212,8 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _runRaiseAnim() {
-    _transAnim = _animator.drive(Tween(begin: _calcTranslation(), end: 0.0));
-    _deltaAnim = _animator.drive(Tween(begin: 0.0, end: _calcRaiseDelta()));
+    _transAnim = _baseAnim.drive(Tween(begin: _calcTranslation(), end: 0.0));
+    _deltaAnim = _baseAnim.drive(Tween(begin: 0.0, end: _calcRaiseDelta()));
     _animator.forward();
   }
 
@@ -231,12 +233,12 @@ class _DragListState<T> extends State<DragList<T>>
   void _runDropAnim() {
     _isDropping = true;
     final delta = _calcDropDelta();
-    _lastFrameDelta += delta * (1 - _animator.value);
-    _deltaAnim = _animator.drive(Tween(begin: delta, end: 0.0));
+    _lastFrameDelta += delta * (1 - _baseAnim.value);
+    _deltaAnim = _baseAnim.drive(Tween(begin: delta, end: 0.0));
     final trans = _calcTranslation();
-    _transAnim = _animator.drive(Tween(
+    _transAnim = _baseAnim.drive(Tween(
       begin: trans,
-      end: trans * (1 - 1 / _animator.value),
+      end: trans * (1 - 1 / _baseAnim.value),
     ));
     _animator.reverse();
   }
@@ -254,7 +256,7 @@ class _DragListState<T> extends State<DragList<T>>
     final rawDelta = (_hoverIndex - _dragIndex) * widget.itemExtent;
     final totalDropDelta =
         _calcBoundedDelta(rawDelta) - (_dragDelta - _lastFrameDelta);
-    return totalDropDelta / _animator.value;
+    return totalDropDelta / _baseAnim.value;
   }
 
   void _onItemDragUpdate(int index, PointerMoveEvent details) {

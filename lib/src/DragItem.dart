@@ -79,7 +79,9 @@ class DragItemState extends State<DragItem>
 
   void _updateTransAnim() {
     final trans = widget.extent * (_status == DragItemStatus.BEFORE ? 1 : -1);
-    _transAnim = _animator.drive(Tween(begin: trans, end: 0.0));
+    _transAnim = Tween(begin: trans, end: 0.0)
+        .chain(CurveTween(curve: Curves.easeInOut))
+        .animate(_animator);
     _animator.forward(from: 1 - _animator.value);
   }
 
