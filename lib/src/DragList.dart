@@ -103,6 +103,9 @@ class _DragListState<T> extends State<DragList<T>>
       _swapItemKeys(_dragIndex, _hoverIndex);
     }
     _clearState();
+    // Jump to current offset to make sure _drag in ScrollableState has been disposed.
+    // Happened every time when list view was touched after an item had been dragged.
+    _scrollController.jumpTo(_scrollController.offset);
   }
 
   void _swapItemKeys(int from, int to) {
@@ -154,7 +157,6 @@ class _DragListState<T> extends State<DragList<T>>
   Widget build(BuildContext context) {
     return ListView.builder(
       physics: _animator.isAnimating ? NeverScrollableScrollPhysics() : null,
-      // physics: null,
       scrollDirection: widget.scrollDirection,
       itemExtent: widget.itemExtent,
       controller: _scrollController,
