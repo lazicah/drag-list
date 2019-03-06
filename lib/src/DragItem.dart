@@ -8,7 +8,6 @@ class DragItem extends StatefulWidget {
     @required Key key,
     @required this.builder,
     @required this.handle,
-    @required this.onDragStart,
     @required this.onDragStop,
     @required this.onDragUpdate,
     @required this.onDragTouch,
@@ -20,7 +19,6 @@ class DragItem extends StatefulWidget {
 
   final DragWidgetBuilder builder;
   final Widget handle;
-  final VoidCallback onDragStart;
   final VoidCallback onDragStop;
   final PointerMoveEventListener onDragUpdate;
   final PointerDownEventListener onDragTouch;
@@ -106,16 +104,11 @@ class DragItemState extends State<DragItem>
 
   Widget _wrapHandle() {
     return Listener(
-      child: Listener(
-        onPointerCancel: (_) => widget.onDragStop(),
-        onPointerUp: (_) => widget.onDragStop(),
-        onPointerDown: widget.onDragTouch,
-        onPointerMove: widget.onDragUpdate,
-        child: GestureDetector(
-          onLongPress: widget.onDragStart,
-          child: widget.handle,
-        ),
-      ),
+      onPointerCancel: (_) => widget.onDragStop(),
+      onPointerUp: (_) => widget.onDragStop(),
+      onPointerDown: widget.onDragTouch,
+      onPointerMove: widget.onDragUpdate,
+      child: widget.handle,
     );
   }
 }

@@ -42,7 +42,6 @@ class _DragListState<T> extends State<DragList<T>>
     with SingleTickerProviderStateMixin {
   int _dragIndex;
   int _hoverIndex;
-  bool _hasPendingDrag;
   bool _isDropping;
   double _totalDelta;
   double _dragDelta;
@@ -121,7 +120,6 @@ class _DragListState<T> extends State<DragList<T>>
     _lastFrameDelta = 0.0;
     _totalDelta = 0.0;
     _dragDelta = 0.0;
-    _hasPendingDrag = false;
     _isDropping = false;
     _localStart = null;
     _itemStart = null;
@@ -156,6 +154,7 @@ class _DragListState<T> extends State<DragList<T>>
   Widget build(BuildContext context) {
     return ListView.builder(
       physics: _animator.isAnimating ? NeverScrollableScrollPhysics() : null,
+      // physics: null,
       scrollDirection: widget.scrollDirection,
       itemExtent: widget.itemExtent,
       controller: _scrollController,
@@ -189,10 +188,9 @@ class _DragListState<T> extends State<DragList<T>>
       handle: widget.handleBuilder(context),
       builder: (context, handle) =>
           widget.builder(context, widget.items[itemIndex], handle),
-      onDragStart: () => _onItemDragStart(itemIndex),
+      onDragTouch: (event) => _onItemDragTouch(itemIndex, event),
       onDragStop: () => _onItemDragStop(itemIndex),
       onDragUpdate: (details) => _onItemDragUpdate(itemIndex, details),
-      onDragTouch: (event) => _onItemDragTouch(itemIndex, event),
       extent: widget.itemExtent,
       animDuration: widget.animDuration,
       scrollDirection: widget.scrollDirection,
@@ -200,15 +198,26 @@ class _DragListState<T> extends State<DragList<T>>
     );
   }
 
-  void _onItemDragStart(int index) {
-    if (!_isDragging && _hasPendingDrag) {
-      _overlay.insert(_dragOverlay);
-      setState(() {
-        _dragIndex = index;
-        _hoverIndex = index;
-      });
-      _runRaiseAnim();
+  void _onItemDragTouch(int index, PointerDownEvent event) {
+    if (!_isDragging) {
+      _registerStartPoint(event);
+      _onItemDragStart(index);
     }
+  }
+
+  void _registerStartPoint(PointerDownEvent event) {
+    final localPos = _listBox.globalToLocal(event.position);
+    _localStart = widget.axisOffset(localPos);
+    _itemStart = (_localStart + _scrollOffset) % widget.itemExtent;
+  }
+
+  void _onItemDragStart(int index) {
+    _overlay.insert(_dragOverlay);
+    setState(() {
+      _dragIndex = index;
+      _hoverIndex = index;
+    });
+    _runRaiseAnim();
   }
 
   void _runRaiseAnim() {
@@ -243,6 +252,13 @@ class _DragListState<T> extends State<DragList<T>>
     _animator.reverse();
   }
 
+  double _calcDropDelta() {
+    final rawDelta = (_hoverIndex - _dragIndex) * widget.itemExtent;
+    final totalDropDelta =
+        _calcBoundedDelta(rawDelta) - (_dragDelta - _lastFrameDelta);
+    return totalDropDelta / _baseAnim.value;
+  }
+
   double _calcTranslation() {
     final rawClip = _dragsForwards
         ? 1 -
@@ -250,13 +266,6 @@ class _DragListState<T> extends State<DragList<T>>
         : _scrollOffset / widget.itemExtent - _hoverIndex;
     final clip = max(rawClip - 0.5, 0.0) * (_dragsForwards ? 1 : -1);
     return clip * widget.itemExtent;
-  }
-
-  double _calcDropDelta() {
-    final rawDelta = (_hoverIndex - _dragIndex) * widget.itemExtent;
-    final totalDropDelta =
-        _calcBoundedDelta(rawDelta) - (_dragDelta - _lastFrameDelta);
-    return totalDropDelta / _baseAnim.value;
   }
 
   void _onItemDragUpdate(int index, PointerMoveEvent details) {
@@ -286,15 +295,6 @@ class _DragListState<T> extends State<DragList<T>>
     final index = min(max(rawIndex, 0), widget.items.length - 1);
     if (_hoverIndex != index) {
       setState(() => _hoverIndex = index);
-    }
-  }
-
-  void _onItemDragTouch(int index, PointerDownEvent event) {
-    if (!_isDragging) {
-      final localPos = _listBox.globalToLocal(event.position);
-      _localStart = widget.axisOffset(localPos);
-      _itemStart = (_localStart + _scrollOffset) % widget.itemExtent;
-      _hasPendingDrag = true;
     }
   }
 }
