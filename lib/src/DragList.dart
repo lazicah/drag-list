@@ -13,11 +13,11 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   DragList({
     @required this.items,
     @required this.itemExtent,
-    @required this.handleBuilder,
     @required this.builder,
     this.animDuration = const Duration(milliseconds: 300),
     this.handleAlignment = 0.0,
     this.scrollDirection = Axis.vertical,
+    this.handleBuilder,
     this.onItemReorder,
   }) : assert(handleAlignment >= -1.0 && handleAlignment <= 1.0,
             'Handle alignment has to be in bounds (-1, 1) inclusive. Passed value was: $handleAlignment.');
@@ -64,6 +64,8 @@ class _DragListState<T> extends State<DragList<T>>
   bool get _dragsForwards => _dragDelta > 0;
   double get _scrollOffset => _scrollController.offset;
   double get _listMainSize => widget.axisSize(_listBox.size);
+  WidgetBuilder get _handleBuilder =>
+      widget.handleBuilder ?? _buildDefaultHandle;
 
   @override
   void initState() {
@@ -141,7 +143,7 @@ class _DragListState<T> extends State<DragList<T>>
       child: widget.builder(
         context,
         widget.items[_dragIndex],
-        widget.handleBuilder(context),
+        _handleBuilder(context),
       ),
     );
   }
@@ -187,7 +189,7 @@ class _DragListState<T> extends State<DragList<T>>
   Widget _buildDragItem(BuildContext context, int itemIndex, int dispIndex) {
     return DragItem(
       key: _itemKeys.putIfAbsent(itemIndex, () => GlobalKey()),
-      handle: widget.handleBuilder(context),
+      handle: _handleBuilder(context),
       builder: (context, handle) =>
           widget.builder(context, widget.items[itemIndex], handle),
       onDragTouch: (event) => _onItemDragTouch(itemIndex, event),
@@ -298,5 +300,14 @@ class _DragListState<T> extends State<DragList<T>>
     if (_hoverIndex != index) {
       setState(() => _hoverIndex = index);
     }
+  }
+
+  Widget _buildDefaultHandle(_) {
+    final size = 24.0;
+    final padding = min(max((widget.itemExtent - size) / 2, 0.0), 8.0);
+    return Padding(
+      padding: EdgeInsets.all(padding),
+      child: Icon(Icons.drag_handle, size: size),
+    );
   }
 }

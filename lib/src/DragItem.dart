@@ -104,6 +104,7 @@ class DragItemState extends State<DragItem>
 
   Widget _wrapHandle() {
     return Listener(
+      behavior: HitTestBehavior.translucent,
       onPointerCancel: (_) => widget.onDragStop(),
       onPointerUp: (_) => widget.onDragStop(),
       onPointerDown: widget.onDragTouch,
