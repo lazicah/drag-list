@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:async/async.dart';
 import 'package:drag_list/src/AxisDimen.dart';
 import 'package:drag_list/src/DragItem.dart';
 import 'package:drag_list/src/DragItemStatus.dart';
@@ -14,6 +15,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   final double itemExtent;
   final double handleAlignment;
   final Duration animDuration;
+  final Duration dragDelay;
   final WidgetBuilder handleBuilder;
   final DragItemBuilder<T> builder;
   final ItemReorderCallback onItemReorder;
@@ -24,11 +26,13 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     @required this.itemExtent,
     @required this.builder,
     Duration animDuration,
+    Duration dragDelay,
     double handleAlignment,
     Axis scrollDirection,
     this.handleBuilder,
     this.onItemReorder,
-  })  : this.animDuration = animDuration ?? const Duration(milliseconds: 300),
+  })  : this.animDuration = animDuration ?? Duration(milliseconds: 300),
+        this.dragDelay = dragDelay ?? Duration(milliseconds: 500),
         this.handleAlignment = handleAlignment ?? 0.0,
         this.scrollDirection = scrollDirection ?? Axis.vertical {
     assert(this.handleAlignment >= -1.0 && this.handleAlignment <= 1.0,
@@ -40,6 +44,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     @required double itemExtent,
     Widget Function(BuildContext, T) builder,
     Duration animDuration,
+    Duration dragDelay,
     double handleAlignment,
     Axis scrollDirection,
     ItemReorderCallback onItemReorder,
@@ -49,6 +54,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
           handleAlignment: handleAlignment,
           scrollDirection: scrollDirection,
           animDuration: animDuration,
+          dragDelay: dragDelay,
           onItemReorder: onItemReorder,
           handleBuilder: (_) => Container(),
           builder: (context, item, handle) {
@@ -76,6 +82,7 @@ class _DragListState<T> extends State<DragList<T>>
   double _localStart;
   double _itemStart;
   double _lastFrameDelta;
+  CancelableOperation _startDragJob;
   OverlayEntry _dragOverlay;
   ScrollController _scrollController;
   Map<int, GlobalKey> _itemKeys;
@@ -135,7 +142,7 @@ class _DragListState<T> extends State<DragList<T>>
     _clearState();
     // Jump to current offset to make sure _drag in ScrollableState has been disposed.
     // Happened every time when list view was touched after an item had been dragged.
-    _scrollController.jumpTo(_scrollController.offset);
+    _scrollController.jumpTo(_scrollOffset);
   }
 
   void _swapItemKeys(int from, int to) {
@@ -158,6 +165,7 @@ class _DragListState<T> extends State<DragList<T>>
     _itemStart = null;
     _dragIndex = null;
     _hoverIndex = null;
+    _startDragJob = null;
   }
 
   Widget _buildOverlay(BuildContext context) {
@@ -180,6 +188,7 @@ class _DragListState<T> extends State<DragList<T>>
   void dispose() {
     _scrollController.dispose();
     _animator.dispose();
+    _startDragJob?.cancel();
     super.dispose();
   }
 
@@ -233,7 +242,7 @@ class _DragListState<T> extends State<DragList<T>>
   void _onItemDragTouch(int index, PointerDownEvent event) {
     if (!_isDragging) {
       _registerStartPoint(event);
-      _onItemDragStart(index);
+      _scheduleDragStart(index);
     }
   }
 
@@ -241,6 +250,16 @@ class _DragListState<T> extends State<DragList<T>>
     final localPos = _listBox.globalToLocal(event.position);
     _localStart = widget.axisOffset(localPos);
     _itemStart = (_localStart + _scrollOffset) % widget.itemExtent;
+  }
+
+  void _scheduleDragStart(int index) {
+    _startDragJob?.cancel();
+    var cancelled = false;
+    final startDrag = Future.delayed(widget.dragDelay, () {
+      if (!cancelled) _onItemDragStart(index);
+    });
+    _startDragJob = CancelableOperation.fromFuture(startDrag,
+        onCancel: () => cancelled = true);
   }
 
   void _onItemDragStart(int index) {
