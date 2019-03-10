@@ -188,7 +188,7 @@ class _DragListState<T> extends State<DragList<T>>
   void dispose() {
     _scrollController.dispose();
     _animator.dispose();
-    _startDragJob?.cancel();
+    _clearDragJob();
     super.dispose();
   }
 
@@ -241,19 +241,19 @@ class _DragListState<T> extends State<DragList<T>>
 
   void _onItemDragTouch(int index, PointerDownEvent event) {
     if (!_isDragging) {
-      _registerStartPoint(event);
+      _registerStartPoint(event.position);
       _scheduleDragStart(index);
     }
   }
 
-  void _registerStartPoint(PointerDownEvent event) {
-    final localPos = _listBox.globalToLocal(event.position);
+  void _registerStartPoint(Offset position) {
+    final localPos = _listBox.globalToLocal(position);
     _localStart = widget.axisOffset(localPos);
     _itemStart = (_localStart + _scrollOffset) % widget.itemExtent;
   }
 
   void _scheduleDragStart(int index) {
-    _startDragJob?.cancel();
+    _clearDragJob();
     var cancelled = false;
     final startDrag = Future.delayed(widget.dragDelay, () {
       if (!cancelled) _onItemDragStart(index);
@@ -263,6 +263,7 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragStart(int index) {
+    _clearDragJob();
     _overlay.insert(_dragOverlay);
     setState(() {
       _dragIndex = index;
@@ -284,10 +285,16 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragStop(int index) {
+    _clearDragJob();
     if (_isDragging && !_isDropping) {
       _totalDelta = _calcBoundedDelta(_totalDelta);
       _runDropAnim();
     }
+  }
+
+  void _clearDragJob() {
+    _startDragJob?.cancel();
+    _startDragJob = null;
   }
 
   void _runDropAnim() {
@@ -319,9 +326,12 @@ class _DragListState<T> extends State<DragList<T>>
     return clip * widget.itemExtent;
   }
 
-  void _onItemDragUpdate(int index, PointerMoveEvent details) {
+  void _onItemDragUpdate(int index, PointerMoveEvent event) {
+    if (_startDragJob != null) {
+      _registerStartPoint(event.position);
+    }
     if (_isDragging && !_isDropping) {
-      final delta = widget.axisOffset(details.delta);
+      final delta = widget.axisOffset(event.delta);
       _updateDelta(delta);
       _updateHoverIndex();
     }
