@@ -19,9 +19,9 @@ class DragItem extends StatefulWidget {
 
   final DragWidgetBuilder builder;
   final Widget handle;
-  final VoidCallback onDragStop;
-  final PointerMoveEventListener onDragUpdate;
-  final PointerDownEventListener onDragTouch;
+  final Function(Offset) onDragStop;
+  final Function(Offset) onDragUpdate;
+  final Function(Offset) onDragTouch;
   final double extent;
   final DragItemStatus status;
   final Duration animDuration;
@@ -105,10 +105,10 @@ class DragItemState extends State<DragItem>
   Widget _wrapHandle() {
     return Listener(
       behavior: HitTestBehavior.translucent,
-      onPointerCancel: (_) => widget.onDragStop(),
-      onPointerUp: (_) => widget.onDragStop(),
-      onPointerDown: widget.onDragTouch,
-      onPointerMove: widget.onDragUpdate,
+      onPointerCancel: (it) => widget.onDragStop(it.position),
+      onPointerUp: (it) => widget.onDragStop(it.position),
+      onPointerDown: (it) => widget.onDragTouch(it.position),
+      onPointerMove: (it) => widget.onDragUpdate(it.delta),
       child: widget.handle,
     );
   }

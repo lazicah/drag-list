@@ -32,7 +32,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     this.handleBuilder,
     this.onItemReorder,
   })  : this.animDuration = animDuration ?? Duration(milliseconds: 300),
-        this.dragDelay = dragDelay ?? Duration(milliseconds: 500),
+        this.dragDelay = dragDelay ?? Duration(milliseconds: 300),
         this.handleAlignment = handleAlignment ?? 0.0,
         this.scrollDirection = scrollDirection ?? Axis.vertical {
     assert(this.handleAlignment >= -1.0 && this.handleAlignment <= 1.0,
@@ -82,6 +82,9 @@ class _DragListState<T> extends State<DragList<T>>
   double _localStart;
   double _itemStart;
   double _lastFrameDelta;
+  double _touchScroll;
+  Offset _startPoint;
+  Offset _touchPoint;
   CancelableOperation _startDragJob;
   OverlayEntry _dragOverlay;
   ScrollController _scrollController;
@@ -99,6 +102,8 @@ class _DragListState<T> extends State<DragList<T>>
   bool get _dragsForwards => _dragDelta > 0;
   double get _scrollOffset => _scrollController.offset;
   double get _listMainSize => widget.axisSize(_listBox.size);
+  double get _itemStartExtent =>
+      widget.itemExtent * (1 + widget.handleAlignment) / 2;
   WidgetBuilder get _handleBuilder =>
       widget.handleBuilder ?? _buildDefaultHandle;
 
@@ -119,7 +124,7 @@ class _DragListState<T> extends State<DragList<T>>
   void _onAnimUpdate() {
     final toAdd = _deltaAnim.value - _lastFrameDelta;
     _lastFrameDelta = _deltaAnim.value;
-    _updateDelta(toAdd);
+    _onDeltaChanged(toAdd);
   }
 
   void _onAnimStatus(AnimationStatus status) {
@@ -160,12 +165,15 @@ class _DragListState<T> extends State<DragList<T>>
     _lastFrameDelta = 0.0;
     _totalDelta = 0.0;
     _dragDelta = 0.0;
+    _touchScroll = 0.0;
     _isDropping = false;
     _localStart = null;
     _itemStart = null;
     _dragIndex = null;
     _hoverIndex = null;
     _startDragJob = null;
+    _startPoint = null;
+    _touchPoint = null;
   }
 
   Widget _buildOverlay(BuildContext context) {
@@ -195,7 +203,7 @@ class _DragListState<T> extends State<DragList<T>>
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      physics: _animator.isAnimating ? NeverScrollableScrollPhysics() : null,
+      physics: _isDragging ? NeverScrollableScrollPhysics() : null,
       scrollDirection: widget.scrollDirection,
       itemExtent: widget.itemExtent,
       controller: _scrollController,
@@ -229,9 +237,9 @@ class _DragListState<T> extends State<DragList<T>>
       handle: _handleBuilder(context),
       builder: (context, handle) =>
           widget.builder(context, widget.items[itemIndex], handle),
-      onDragTouch: (event) => _onItemDragTouch(itemIndex, event),
-      onDragStop: () => _onItemDragStop(itemIndex),
-      onDragUpdate: (details) => _onItemDragUpdate(itemIndex, details),
+      onDragTouch: (position) => _onItemDragTouch(itemIndex, position),
+      onDragStop: (position) => _onItemDragStop(itemIndex, position),
+      onDragUpdate: (delta) => _onItemDragUpdate(itemIndex, delta),
       extent: widget.itemExtent,
       animDuration: widget.animDuration,
       scrollDirection: widget.scrollDirection,
@@ -239,17 +247,13 @@ class _DragListState<T> extends State<DragList<T>>
     );
   }
 
-  void _onItemDragTouch(int index, PointerDownEvent event) {
+  void _onItemDragTouch(int index, Offset position) {
     if (!_isDragging) {
-      _registerStartPoint(event.position);
+      _touchPoint = position;
+      _startPoint = position;
+      _touchScroll = _scrollOffset;
       _scheduleDragStart(index);
     }
-  }
-
-  void _registerStartPoint(Offset position) {
-    final localPos = _listBox.globalToLocal(position);
-    _localStart = widget.axisOffset(localPos);
-    _itemStart = (_localStart + _scrollOffset) % widget.itemExtent;
   }
 
   void _scheduleDragStart(int index) {
@@ -264,12 +268,19 @@ class _DragListState<T> extends State<DragList<T>>
 
   void _onItemDragStart(int index) {
     _clearDragJob();
+    _registerStartPoint(_touchPoint);
     _overlay.insert(_dragOverlay);
     setState(() {
       _dragIndex = index;
       _hoverIndex = index;
     });
     _runRaiseAnim();
+  }
+
+  void _registerStartPoint(Offset position) {
+    final localPos = _listBox.globalToLocal(position);
+    _localStart = widget.axisOffset(localPos) + _touchScroll - _scrollOffset;
+    _itemStart = (_localStart + _scrollOffset) % widget.itemExtent;
   }
 
   void _runRaiseAnim() {
@@ -279,16 +290,18 @@ class _DragListState<T> extends State<DragList<T>>
   }
 
   double _calcRaiseDelta() {
-    final itemStartExtent =
-        widget.itemExtent * (1 + widget.handleAlignment) / 2;
-    return _itemStart - itemStartExtent;
+    final startDrag = widget.axisOffset(_startPoint - _touchPoint) +
+        _scrollOffset -
+        _touchScroll;
+    return _itemStart - _itemStartExtent + startDrag;
   }
 
-  void _onItemDragStop(int index) {
+  void _onItemDragStop(int index, Offset position) {
     _clearDragJob();
     if (_isDragging && !_isDropping) {
       _totalDelta = _calcBoundedDelta(_totalDelta);
-      _runDropAnim();
+      final localPos = _listBox.globalToLocal(position);
+      _runDropAnim(localPos);
     }
   }
 
@@ -297,9 +310,9 @@ class _DragListState<T> extends State<DragList<T>>
     _startDragJob = null;
   }
 
-  void _runDropAnim() {
+  void _runDropAnim(Offset stopOffset) {
     _isDropping = true;
-    final delta = _calcDropDelta();
+    final delta = _calcDropDelta(stopOffset);
     _lastFrameDelta += delta * (1 - _baseAnim.value);
     _deltaAnim = _baseAnim.drive(Tween(begin: delta, end: 0.0));
     final trans = _calcTranslation();
@@ -310,11 +323,13 @@ class _DragListState<T> extends State<DragList<T>>
     _animator.reverse();
   }
 
-  double _calcDropDelta() {
-    final rawDelta = (_hoverIndex - _dragIndex) * widget.itemExtent;
-    final totalDropDelta =
-        _calcBoundedDelta(rawDelta) - (_dragDelta - _lastFrameDelta);
-    return totalDropDelta / _baseAnim.value;
+  double _calcDropDelta(Offset stopOffset) {
+    final listSize = widget.axisSize(_listBox.size);
+    final rawPos = widget.axisOffset(stopOffset);
+    final halfItemStart = widget.itemExtent * widget.handleAlignment / 2;
+    final stopPos = min(listSize + halfItemStart, max(halfItemStart, rawPos));
+    final hoverStartPos = _hoverIndex * widget.itemExtent - _scrollOffset;
+    return -(stopPos - hoverStartPos - _itemStartExtent);
   }
 
   double _calcTranslation() {
@@ -326,15 +341,22 @@ class _DragListState<T> extends State<DragList<T>>
     return clip * widget.itemExtent;
   }
 
-  void _onItemDragUpdate(int index, PointerMoveEvent event) {
+  void _onItemDragUpdate(int index, Offset delta) {
     if (_startDragJob != null) {
-      _registerStartPoint(event.position);
+      _startPoint += delta;
+      final startDrag = widget.axisOffset(_startPoint - _touchPoint).abs();
+      if (startDrag > widget.itemExtent / 2) {
+        _clearDragJob();
+      }
     }
     if (_isDragging && !_isDropping) {
-      final delta = widget.axisOffset(event.delta);
-      _updateDelta(delta);
-      _updateHoverIndex();
+      _onDeltaChanged(widget.axisOffset(delta));
     }
+  }
+
+  void _onDeltaChanged(double delta) {
+    _updateDelta(delta);
+    _updateHoverIndex();
   }
 
   void _updateDelta(double delta) {
