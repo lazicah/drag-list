@@ -14,25 +14,15 @@ class CountriesPage extends StatelessWidget {
         appBar: AppBar(title: Text('Largest countries')),
         body: Padding(
           padding: EdgeInsets.all(16.0),
-          child: DragList<String>(
+          child: DragList<String>.handleless(
             items: _countries,
             itemExtent: _itemHeight,
-            handleBuilder: (_) => Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Icon(Icons.drag_handle),
-                ),
-            builder: (_, item, handle) {
+            builder: (_, item) {
               return Container(
                 height: _itemHeight,
                 child: Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Row(children: [
-                    Expanded(child: Center(child: Text(item))),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [handle],
-                    ),
-                  ]),
+                  child: Center(child: Text(item)),
                 ),
               );
             },
