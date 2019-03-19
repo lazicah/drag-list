@@ -7,14 +7,35 @@ typedef Widget DragItemBuilder<T>(BuildContext context, T item, Widget handle);
 typedef void ItemReorderCallback(int from, int to);
 
 class DragList<T> extends StatefulWidget with AxisDimen {
+  /// List of items displayed in the list.
   final List<T> items;
+
+  /// Extent of each item widget in the list. Corresponds to
+  /// width/height in case of horizontal/vertical axis orientation.
   final double itemExtent;
+
+  /// Relative position within item widget that corresponds to the center of
+  /// handle, where -1.0 stands for beginning and 1.0 for end of the item.
   final double handleAlignment;
+
+  /// Duration of raise and drop animation of dragged item.
   final Duration animDuration;
+
+  /// Duration between list item touch and drag start.
   final Duration dragDelay;
+
+  /// Builder function that creates handle widget.
   final WidgetBuilder handleBuilder;
+
+  /// Builder function that creates widget for eatch element of the list.
   final DragItemBuilder<T> builder;
+
+  /// Callback function that invokes if dragged item changed
+  /// its index and drag action is ended. By default this
+  /// will swap start and end position in [items] list.
   final ItemReorderCallback onItemReorder;
+
+  /// Axis orientation of the list widget.
   final Axis scrollDirection;
 
   DragList({
