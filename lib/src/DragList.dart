@@ -2,6 +2,7 @@ import 'package:drag_list/src/AxisDimen.dart';
 import 'package:drag_list/src/DragListState.dart';
 import 'package:flutter/material.dart';
 
+typedef Widget HandlelessBuilder<T>(BuildContext context, T item);
 typedef Widget DragItemBuilder<T>(BuildContext context, T item, Widget handle);
 typedef void ItemReorderCallback(int from, int to);
 
@@ -37,7 +38,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   DragList.handleless({
     @required List<T> items,
     @required double itemExtent,
-    Widget Function(BuildContext, T) builder,
+    HandlelessBuilder<T> builder,
     Duration animDuration,
     Duration dragDelay,
     double handleAlignment,
