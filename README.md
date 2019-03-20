@@ -50,10 +50,10 @@ child: DragList<String>(
   animDuration: Duration(milliseconds: 500),
   dragDelay: Duration(seconds: 1),
   handleAlignment: -0.3,
+  scrollDirection: Axis.horizontal,
   onItemReorder: (from, to) {
     // handle item reorder on your own
   },
-  scrollDirection: Axis.horizontal,
 ),
 ```
 
