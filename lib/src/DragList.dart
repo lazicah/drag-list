@@ -49,7 +49,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     this.handleBuilder,
     this.onItemReorder,
   })  : this.animDuration = animDuration ?? Duration(milliseconds: 300),
-        this.dragDelay = dragDelay ?? Duration(milliseconds: 300),
+        this.dragDelay = dragDelay ?? Duration.zero,
         this.handleAlignment = handleAlignment ?? 0.0,
         this.scrollDirection = scrollDirection ?? Axis.vertical {
     assert(this.handleAlignment >= -1.0 && this.handleAlignment <= 1.0,
@@ -71,7 +71,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
           handleAlignment: handleAlignment,
           scrollDirection: scrollDirection,
           animDuration: animDuration,
-          dragDelay: dragDelay,
+          dragDelay: dragDelay ?? Duration(milliseconds: 300),
           onItemReorder: onItemReorder,
           handleBuilder: (_) => Container(),
           builder: (context, item, handle) {
