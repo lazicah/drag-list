@@ -38,6 +38,10 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   /// Axis orientation of the list widget.
   final Axis scrollDirection;
 
+  /// Whether the extent of the scroll view in the scrollDirection
+  /// should be determined by the contents being viewed.
+  final bool shrinkWrap;
+
   DragList({
     @required this.items,
     @required this.itemExtent,
@@ -46,12 +50,14 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     Duration dragDelay,
     double handleAlignment,
     Axis scrollDirection,
+    bool shrinkWrap,
     this.handleBuilder,
     this.onItemReorder,
   })  : this.animDuration = animDuration ?? Duration(milliseconds: 300),
         this.dragDelay = dragDelay ?? Duration.zero,
         this.handleAlignment = handleAlignment ?? 0.0,
-        this.scrollDirection = scrollDirection ?? Axis.vertical {
+        this.scrollDirection = scrollDirection ?? Axis.vertical,
+        this.shrinkWrap = shrinkWrap ?? false {
     assert(this.handleAlignment >= -1.0 && this.handleAlignment <= 1.0,
         'Handle alignment has to be in bounds (-1, 1) inclusive. Passed value was: $handleAlignment.');
   }
@@ -64,12 +70,14 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     Duration dragDelay,
     double handleAlignment,
     Axis scrollDirection,
+    bool shrinkWrap,
     ItemReorderCallback onItemReorder,
   }) : this(
           items: items,
           itemExtent: itemExtent,
           handleAlignment: handleAlignment,
           scrollDirection: scrollDirection,
+          shrinkWrap: shrinkWrap,
           animDuration: animDuration,
           dragDelay: dragDelay ?? Duration(milliseconds: 300),
           onItemReorder: onItemReorder,
