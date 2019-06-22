@@ -41,6 +41,10 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   /// Whether the extent of the scroll view in the scrollDirection
   /// should be determined by the contents being viewed.
   final bool shrinkWrap;
+  
+  /// An object that can be used to control the position to which this scroll
+  /// view is scrolled.
+  final ScrollController controller;
 
   DragList({
     @required this.items,
@@ -53,6 +57,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     bool shrinkWrap,
     this.handleBuilder,
     this.onItemReorder,
+    this.controller,
   })  : this.animDuration = animDuration ?? Duration(milliseconds: 300),
         this.dragDelay = dragDelay ?? Duration.zero,
         this.handleAlignment = handleAlignment ?? 0.0,
