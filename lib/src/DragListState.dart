@@ -151,6 +151,7 @@ class DragListState<T> extends State<DragList<T>>
   Widget build(BuildContext context) {
     return ListView.builder(
       physics: _isDragging ? NeverScrollableScrollPhysics() : null,
+      padding: widget.padding,
       scrollDirection: widget.scrollDirection,
       shrinkWrap: widget.shrinkWrap,
       itemExtent: widget.itemExtent,

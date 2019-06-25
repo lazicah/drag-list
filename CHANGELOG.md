@@ -1,3 +1,7 @@
+## [1.0.3] - 25/06/2019
+
+* Added padding property
+
 ## [1.0.2] - 22/06/2019
 
 * Added controller property
