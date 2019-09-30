@@ -149,6 +149,7 @@ class DragListState<T> extends State<DragList<T>>
 
   @override
   Widget build(BuildContext context) {
+    print('*****drag-list building listview');
     return ListView.builder(
       physics: AlwaysScrollableScrollPhysics(), // _isDragging ? NeverScrollableScrollPhysics() : null,
       padding: widget.padding,
