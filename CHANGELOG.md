@@ -1,3 +1,7 @@
+## [1.0.4] - 01/10/2019
+
+* Added scrollPhysics property
+
 ## [1.0.3] - 25/06/2019
 
 * Added padding property
