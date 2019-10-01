@@ -49,6 +49,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   /// The amount of space by which to inset the children.
   final EdgeInsetsGeometry padding;
 
+  /// How the scroll view should respond to user input.
   final ScrollPhysics physics;
 
   DragList({
