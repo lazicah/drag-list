@@ -38,6 +38,7 @@ class DragListState<T> extends State<DragList<T>>
   bool get _dragsForwards => _dragDelta > 0;
   double get _scrollOffset => _scrollController.offset;
   double get _listMainSize => widget.axisSize(_listBox.size);
+  ScrollPhysics get _physics => widget.physics;
   double get _itemStartExtent =>
       widget.itemExtent * (1 + widget.handleAlignment) / 2;
   WidgetBuilder get _handleBuilder =>
@@ -149,8 +150,9 @@ class DragListState<T> extends State<DragList<T>>
 
   @override
   Widget build(BuildContext context) {
+    //print('*****drag-list building listview ***');
     return ListView.builder(
-      physics: _isDragging ? NeverScrollableScrollPhysics() : null,
+      physics: _isDragging ? NeverScrollableScrollPhysics() : _physics,
       padding: widget.padding,
       scrollDirection: widget.scrollDirection,
       shrinkWrap: widget.shrinkWrap,
