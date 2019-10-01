@@ -49,6 +49,8 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   /// The amount of space by which to inset the children.
   final EdgeInsetsGeometry padding;
 
+  final ScrollPhysics physics;
+
   DragList({
     @required this.items,
     @required this.itemExtent,
@@ -62,6 +64,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     this.onItemReorder,
     this.controller,
     this.padding,
+    this.physics,
   })  : this.animDuration = animDuration ?? Duration(milliseconds: 300),
         this.dragDelay = dragDelay ?? Duration.zero,
         this.handleAlignment = handleAlignment ?? 0.0,
@@ -79,6 +82,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     Duration dragDelay,
     double handleAlignment,
     Axis scrollDirection,
+    ScrollPhysics physics,
     bool shrinkWrap,
     ItemReorderCallback onItemReorder,
   }) : this(
@@ -86,6 +90,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
           itemExtent: itemExtent,
           handleAlignment: handleAlignment,
           scrollDirection: scrollDirection,
+          physics: physics,
           shrinkWrap: shrinkWrap,
           animDuration: animDuration,
           dragDelay: dragDelay ?? Duration(milliseconds: 300),
