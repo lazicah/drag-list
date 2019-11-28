@@ -52,10 +52,14 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   /// How the scroll view should respond to user input.
   final ScrollPhysics physics;
 
+  /// optinal widget key
+  final Key key;
+
   DragList({
     @required this.items,
     @required this.itemExtent,
     @required this.builder,
+    this.key,
     Duration animDuration,
     Duration dragDelay,
     double handleAlignment,
@@ -78,6 +82,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   DragList.handleless({
     @required List<T> items,
     @required double itemExtent,
+    Key key,
     HandlelessBuilder<T> builder,
     Duration animDuration,
     Duration dragDelay,
@@ -89,6 +94,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   }) : this(
           items: items,
           itemExtent: itemExtent,
+          key: key,
           handleAlignment: handleAlignment,
           scrollDirection: scrollDirection,
           physics: physics,
