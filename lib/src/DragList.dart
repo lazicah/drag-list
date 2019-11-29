@@ -52,9 +52,6 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   /// How the scroll view should respond to user input.
   final ScrollPhysics physics;
 
-  /// optinal widget key
-  final Key key;
-
   DragList({
     @required this.items,
     @required this.itemExtent,
@@ -70,12 +67,12 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     this.controller,
     this.padding,
     this.physics,
-  })  : this.key = key ?? UniqueKey(),
-        this.animDuration = animDuration ?? Duration(milliseconds: 300),
+  })  : this.animDuration = animDuration ?? Duration(milliseconds: 300),
         this.dragDelay = dragDelay ?? Duration.zero,
         this.handleAlignment = handleAlignment ?? 0.0,
         this.scrollDirection = scrollDirection ?? Axis.vertical,
-        this.shrinkWrap = shrinkWrap ?? false {
+        this.shrinkWrap = shrinkWrap ?? false,
+        super(key: key) {
     assert(this.handleAlignment >= -1.0 && this.handleAlignment <= 1.0,
         'Handle alignment has to be in bounds (-1, 1) inclusive. Passed value was: $handleAlignment.');
   }
