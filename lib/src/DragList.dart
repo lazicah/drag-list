@@ -56,6 +56,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     @required this.items,
     @required this.itemExtent,
     @required this.builder,
+    Key key,
     Duration animDuration,
     Duration dragDelay,
     double handleAlignment,
@@ -70,7 +71,8 @@ class DragList<T> extends StatefulWidget with AxisDimen {
         this.dragDelay = dragDelay ?? Duration.zero,
         this.handleAlignment = handleAlignment ?? 0.0,
         this.scrollDirection = scrollDirection ?? Axis.vertical,
-        this.shrinkWrap = shrinkWrap ?? false {
+        this.shrinkWrap = shrinkWrap ?? false,
+        super(key: key) {
     assert(this.handleAlignment >= -1.0 && this.handleAlignment <= 1.0,
         'Handle alignment has to be in bounds (-1, 1) inclusive. Passed value was: $handleAlignment.');
   }
@@ -78,6 +80,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   DragList.handleless({
     @required List<T> items,
     @required double itemExtent,
+    Key key,
     HandlelessBuilder<T> builder,
     Duration animDuration,
     Duration dragDelay,
@@ -89,6 +92,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   }) : this(
           items: items,
           itemExtent: itemExtent,
+          key: key,
           handleAlignment: handleAlignment,
           scrollDirection: scrollDirection,
           physics: physics,
