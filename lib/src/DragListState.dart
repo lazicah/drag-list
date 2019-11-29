@@ -42,7 +42,6 @@ class DragListState<T> extends State<DragList<T>>
       widget.itemExtent * (1 + widget.handleAlignment) / 2;
   WidgetBuilder get _handleBuilder =>
       widget.handleBuilder ?? _buildDefaultHandle;
-  Key get _key => widget.key ?? UniqueKey();
 
   @override
   void didUpdateWidget(DragList<T> old) {
@@ -151,7 +150,6 @@ class DragListState<T> extends State<DragList<T>>
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      key: _key,
       physics: _isDragging ? NeverScrollableScrollPhysics() : widget.physics,
       padding: widget.padding,
       scrollDirection: widget.scrollDirection,
