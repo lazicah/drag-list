@@ -57,20 +57,18 @@ class DragItemState extends State<DragItem>
   }
 
   @override
-  Widget build(BuildContext context) {
-    _updateStatus();
-    if (_hasBeenHovered) {
-      _updateTransAnim();
+  void didUpdateWidget(DragItem old) {
+    super.didUpdateWidget(old);
+    if (widget.status != old.status) {
+      _prevStatus = _status;
+      _status = widget.status;
+      if (_didChangeIndex) {
+        _updateTransAnim();
+      }
     }
-    return _buildWidget();
   }
 
-  void _updateStatus() {
-    _prevStatus = _status;
-    _status = widget.status;
-  }
-
-  bool get _hasBeenHovered =>
+  bool get _didChangeIndex =>
       (_prevStatus == DragItemStatus.AFTER &&
           _status == DragItemStatus.BEFORE) ||
       (_prevStatus == DragItemStatus.BEFORE && _status == DragItemStatus.AFTER);
@@ -83,7 +81,8 @@ class DragItemState extends State<DragItem>
     _animator.forward(from: 1 - _animator.value);
   }
 
-  Widget _buildWidget() {
+  @override
+  Widget build(BuildContext context) {
     return Opacity(
       opacity: _status == DragItemStatus.HOVER ? 0.0 : 1.0,
       child: AbsorbPointer(
@@ -92,11 +91,11 @@ class DragItemState extends State<DragItem>
           animation: _transAnim,
           child: widget.builder(context, _wrapHandle()),
           builder: (_, child) => Transform.translate(
-                offset: widget.scrollDirection == Axis.vertical
-                    ? Offset(0.0, _transAnim.value)
-                    : Offset(_transAnim.value, 0.0),
-                child: child,
-              ),
+            offset: widget.scrollDirection == Axis.vertical
+                ? Offset(0.0, _transAnim.value)
+                : Offset(_transAnim.value, 0.0),
+            child: child,
+          ),
         ),
       ),
     );
