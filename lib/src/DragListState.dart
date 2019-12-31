@@ -44,28 +44,28 @@ class DragListState<T> extends State<DragList<T>>
       widget.handleBuilder ?? _buildDefaultHandle;
 
   @override
-  void didUpdateWidget(DragList<T> old) {
-    super.didUpdateWidget(old);
-    if (widget.controller == null) {
-      _scrollController = _innerController ??= ScrollController();
-    } else if (old.controller != widget.controller) {
-      _scrollController = widget.controller;
-    }
+  void didUpdateWidget(DragList<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _updateScrollController();
   }
 
   @override
   void initState() {
     super.initState();
+    _innerController = ScrollController();
+    _updateScrollController();
     _clearState();
     _itemKeys = {};
-    _scrollController =
-        widget.controller ?? (_innerController ??= ScrollController());
     _animator = AnimationController(vsync: this, duration: widget.animDuration)
       ..addListener(_onAnimUpdate)
       ..addStatusListener(_onAnimStatus);
     _baseAnim = _animator.drive(CurveTween(curve: Curves.easeInOut));
     _elevAnim = _baseAnim.drive(Tween(begin: 0.0, end: 2.0));
     _dragOverlay = OverlayEntry(builder: _buildOverlay);
+  }
+
+  void _updateScrollController() {
+    _scrollController = widget.controller ?? _innerController;
   }
 
   void _onAnimUpdate() {
@@ -141,7 +141,7 @@ class DragListState<T> extends State<DragList<T>>
 
   @override
   void dispose() {
-    _scrollController?.dispose();
+    _innerController.dispose();
     _animator.dispose();
     _clearDragJob();
     super.dispose();
