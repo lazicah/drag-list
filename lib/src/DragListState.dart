@@ -276,7 +276,7 @@ class DragListState<T> extends State<DragList<T>>
     final listSize = widget.axisSize(_listBox.size);
     final rawPos = widget.axisOffset(stopOffset);
     final halfItemStart = widget.itemExtent * widget.handleAlignment / 2;
-    final stopPos = min(listSize + halfItemStart, max(halfItemStart, rawPos));
+    final stopPos = rawPos.clamp(halfItemStart, listSize + halfItemStart);
     final hoverStartPos = _hoverIndex * widget.itemExtent - _scrollOffset;
     return -(stopPos - hoverStartPos - _itemStartExtent);
   }
@@ -317,14 +317,14 @@ class DragListState<T> extends State<DragList<T>>
   double _calcBoundedDelta(double delta) {
     final minDelta = -_localStart + _itemStart - widget.itemExtent / 2;
     final maxDelta = minDelta + _listMainSize;
-    return min(max(delta, minDelta), maxDelta);
+    return delta.clamp(minDelta, maxDelta);
   }
 
   void _updateHoverIndex() {
     final halfExtent = widget.itemExtent / 2 * (_dragsForwards ? 1 : -1);
     final rawIndex =
         _dragIndex + (_dragDelta + halfExtent) ~/ widget.itemExtent;
-    final index = min(max(rawIndex, 0), widget.items.length - 1);
+    final index = rawIndex.clamp(0, widget.items.length - 1);
     if (_hoverIndex != index) {
       setState(() => _hoverIndex = index);
     }
@@ -332,7 +332,7 @@ class DragListState<T> extends State<DragList<T>>
 
   Widget _buildDefaultHandle(_) {
     final size = 24.0;
-    final padding = min(max((widget.itemExtent - size) / 2, 0.0), 8.0);
+    final padding = (widget.itemExtent - size).clamp(0.0, 8.0);
     return Padding(
       padding: EdgeInsets.all(padding),
       child: Icon(Icons.drag_handle, size: size),
