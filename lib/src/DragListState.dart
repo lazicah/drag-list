@@ -40,7 +40,7 @@ class DragListState<T> extends State<DragList<T>>
   bool get _isDragSettled => _dragIndex == null;
   bool get _dragsForwards => _dragDelta > 0;
   double get _scrollOffset => _scrollController.offset;
-  double get _listMainSize => widget.axisSize(_listBox.size);
+  double get _listSize => widget.axisSize(_listBox.size);
   double get _itemStartExtent =>
       widget.itemExtent * (1 + widget.handleAlignment) / 2;
   WidgetBuilder get _handleBuilder =>
@@ -280,18 +280,16 @@ class DragListState<T> extends State<DragList<T>>
   }
 
   double _calcDropDelta(Offset stopOffset) {
-    final listSize = widget.axisSize(_listBox.size);
     final rawPos = widget.axisOffset(stopOffset);
     final halfItemStart = widget.itemExtent * widget.handleAlignment / 2;
-    final stopPos = rawPos.clamp(halfItemStart, listSize + halfItemStart);
+    final stopPos = rawPos.clamp(halfItemStart, _listSize + halfItemStart);
     final hoverStartPos = _hoverIndex * widget.itemExtent - _scrollOffset;
     return -(stopPos - hoverStartPos - _itemStartExtent);
   }
 
   double _calcTranslation() {
     final rawClip = _dragsForwards
-        ? 1 -
-            ((_scrollOffset + _listMainSize) / widget.itemExtent - _hoverIndex)
+        ? 1 - ((_scrollOffset + _listSize) / widget.itemExtent - _hoverIndex)
         : _scrollOffset / widget.itemExtent - _hoverIndex;
     final clip = max(rawClip - 0.5, 0.0) * (_dragsForwards ? 1 : -1);
     return clip * widget.itemExtent;
@@ -319,7 +317,7 @@ class DragListState<T> extends State<DragList<T>>
   void _updateScrollIfBeyond() {
     final localDragDelta = _localStart + _dragDelta;
     final isDraggedBeyond = localDragDelta < widget.itemExtent / 2 ||
-        localDragDelta > _listMainSize - widget.itemExtent / 2;
+        localDragDelta > _listSize - widget.itemExtent / 2;
     if (_isDragging && isDraggedBeyond) {
       _overdragSub ??= Stream.periodic(Duration(milliseconds: 50))
           .listen((_) => _onOverdragUpdate());
@@ -330,8 +328,7 @@ class DragListState<T> extends State<DragList<T>>
 
   void _onOverdragUpdate() {
     final canScrollMore = _dragsForwards
-        ? _scrollOffset <
-            widget.items.length * widget.itemExtent - _listMainSize
+        ? _scrollOffset < widget.items.length * widget.itemExtent - _listSize
         : _scrollOffset > 0;
     if (canScrollMore) {
       final newOffset = _scrollOffset + 2.0 * (_dragsForwards ? 1 : -1);
@@ -354,7 +351,7 @@ class DragListState<T> extends State<DragList<T>>
 
   double _calcBoundedDelta(double delta) {
     final minDelta = -_localStart + _itemStart - widget.itemExtent / 2;
-    final maxDelta = minDelta + _listMainSize;
+    final maxDelta = minDelta + _listSize;
     return delta.clamp(minDelta, maxDelta);
   }
 
