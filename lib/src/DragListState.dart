@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:async/async.dart';
@@ -12,6 +13,7 @@ class DragListState<T> extends State<DragList<T>>
   int _dragIndex;
   int _hoverIndex;
   bool _isDropping;
+  bool _isDragging;
   double _totalDelta;
   double _dragDelta;
   double _localStart;
@@ -21,6 +23,7 @@ class DragListState<T> extends State<DragList<T>>
   Offset _startPoint;
   Offset _touchPoint;
   CancelableOperation _startDragJob;
+  StreamSubscription _overdragSub;
   OverlayEntry _dragOverlay;
   ScrollController _scrollController;
   ScrollController _innerController;
@@ -34,7 +37,7 @@ class DragListState<T> extends State<DragList<T>>
 
   OverlayState get _overlay => Overlay.of(context);
   RenderBox get _listBox => context.findRenderObject();
-  bool get _isDragging => _dragIndex != null;
+  bool get _isDragSettled => _dragIndex == null;
   bool get _dragsForwards => _dragDelta > 0;
   double get _scrollOffset => _scrollController.offset;
   double get _listMainSize => widget.axisSize(_listBox.size);
@@ -114,6 +117,7 @@ class DragListState<T> extends State<DragList<T>>
     _dragDelta = 0.0;
     _touchScroll = 0.0;
     _isDropping = false;
+    _isDragging = false;
     _localStart = null;
     _itemStart = null;
     _dragIndex = null;
@@ -150,7 +154,7 @@ class DragListState<T> extends State<DragList<T>>
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      physics: _isDragging ? NeverScrollableScrollPhysics() : widget.physics,
+      physics: _isDragSettled ? widget.physics : NeverScrollableScrollPhysics(),
       padding: widget.padding,
       scrollDirection: widget.scrollDirection,
       shrinkWrap: widget.shrinkWrap,
@@ -197,7 +201,7 @@ class DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragTouch(int index, Offset position) {
-    if (!_isDragging) {
+    if (_isDragSettled) {
       _touchPoint = position;
       _startPoint = position;
       _touchScroll = _scrollOffset;
@@ -216,6 +220,7 @@ class DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragStart(int index) {
+    _isDragging = true;
     _clearDragJob();
     _registerStartPoint(_touchPoint);
     _overlay.insert(_dragOverlay);
@@ -246,8 +251,10 @@ class DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragStop(int index, Offset position) {
+    _isDragging = false;
     _clearDragJob();
-    if (_isDragging && !_isDropping) {
+    _stopOverdrag();
+    if (!_isDragSettled && !_isDropping) {
       _totalDelta = _calcBoundedDelta(_totalDelta);
       final localPos = _listBox.globalToLocal(position);
       _runDropAnim(localPos);
@@ -298,7 +305,7 @@ class DragListState<T> extends State<DragList<T>>
         _clearDragJob();
       }
     }
-    if (_isDragging && !_isDropping) {
+    if (!_isDragSettled && !_isDropping) {
       _onDeltaChanged(widget.axisOffset(delta));
     }
   }
@@ -306,6 +313,37 @@ class DragListState<T> extends State<DragList<T>>
   void _onDeltaChanged(double delta) {
     _updateDelta(delta);
     _updateHoverIndex();
+    _updateScrollIfBeyond();
+  }
+
+  void _updateScrollIfBeyond() {
+    final localDragDelta = _localStart + _dragDelta;
+    final isDraggedBeyond = localDragDelta < widget.itemExtent / 2 ||
+        localDragDelta > _listMainSize - widget.itemExtent / 2;
+    if (_isDragging && isDraggedBeyond) {
+      _overdragSub ??= Stream.periodic(Duration(milliseconds: 50))
+          .listen((_) => _onOverdragUpdate());
+    } else if (!isDraggedBeyond && _overdragSub != null) {
+      _stopOverdrag();
+    }
+  }
+
+  void _onOverdragUpdate() {
+    final canScrollMore = _dragsForwards
+        ? _scrollOffset <
+            widget.items.length * widget.itemExtent - _listMainSize
+        : _scrollOffset > 0;
+    if (canScrollMore) {
+      final newOffset = _scrollOffset + 2.0 * (_dragsForwards ? 1 : -1);
+      _scrollController.jumpTo(newOffset);
+    } else {
+      _stopOverdrag();
+    }
+  }
+
+  void _stopOverdrag() {
+    _overdragSub?.cancel();
+    _overdragSub = null;
   }
 
   void _updateDelta(double delta) {
