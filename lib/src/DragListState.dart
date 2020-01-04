@@ -20,6 +20,7 @@ class DragListState<T> extends State<DragList<T>>
   double _itemStart;
   double _lastFrameDelta;
   double _touchScroll;
+  double _overdragOffset;
   Offset _startPoint;
   Offset _touchPoint;
   CancelableOperation _startDragJob;
@@ -112,6 +113,7 @@ class DragListState<T> extends State<DragList<T>>
       widget.items.insert(to, widget.items.removeAt(from));
 
   void _clearState() {
+    _overdragOffset = 0.0;
     _lastFrameDelta = 0.0;
     _totalDelta = 0.0;
     _dragDelta = 0.0;
@@ -331,8 +333,10 @@ class DragListState<T> extends State<DragList<T>>
         ? _scrollOffset < widget.items.length * widget.itemExtent - _listSize
         : _scrollOffset > 0;
     if (canScrollMore) {
-      final newOffset = _scrollOffset + 2.0 * (_dragsForwards ? 1 : -1);
-      _scrollController.jumpTo(newOffset);
+      final offsetDelta = 2.0 * (_dragsForwards ? 1 : -1);
+      _scrollController.jumpTo(_scrollOffset + offsetDelta);
+      _overdragOffset += offsetDelta;
+      _updateHoverIndex();
     } else {
       _stopOverdrag();
     }
@@ -357,8 +361,8 @@ class DragListState<T> extends State<DragList<T>>
 
   void _updateHoverIndex() {
     final halfExtent = widget.itemExtent / 2 * (_dragsForwards ? 1 : -1);
-    final rawIndex =
-        _dragIndex + (_dragDelta + halfExtent) ~/ widget.itemExtent;
+    final rawIndex = _dragIndex +
+        (_dragDelta + halfExtent + _overdragOffset) ~/ widget.itemExtent;
     final index = rawIndex.clamp(0, widget.items.length - 1);
     if (_hoverIndex != index) {
       setState(() => _hoverIndex = index);
