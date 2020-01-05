@@ -14,6 +14,7 @@ class DragListState<T> extends State<DragList<T>>
   int _hoverIndex;
   bool _isDropping;
   bool _isDragging;
+  double _rawDelta;
   double _totalDelta;
   double _dragDelta;
   double _localStart;
@@ -115,6 +116,7 @@ class DragListState<T> extends State<DragList<T>>
   void _clearState() {
     _overdragOffset = 0.0;
     _lastFrameDelta = 0.0;
+    _rawDelta = 0.0;
     _totalDelta = 0.0;
     _dragDelta = 0.0;
     _touchScroll = 0.0;
@@ -298,6 +300,7 @@ class DragListState<T> extends State<DragList<T>>
   }
 
   void _onItemDragUpdate(int index, Offset delta) {
+    _rawDelta += widget.axisOffset(delta);
     if (_startDragJob != null) {
       _startPoint += delta;
       final startDrag = widget.axisOffset(_startPoint - _touchPoint).abs();
@@ -317,9 +320,9 @@ class DragListState<T> extends State<DragList<T>>
   }
 
   void _updateScrollIfBeyond() {
-    final localDragDelta = _localStart + _dragDelta;
-    final isDraggedBeyond = localDragDelta < widget.itemExtent / 2 ||
-        localDragDelta > _listSize - widget.itemExtent / 2;
+    final isDraggedBeyond = _dragsForwards
+        ? _localStart + _rawDelta > _listSize - widget.itemExtent / 2
+        : _localStart + _rawDelta < widget.itemExtent / 2;
     if (_isDragging && isDraggedBeyond) {
       _overdragSub ??= Stream.periodic(Duration(milliseconds: 50))
           .listen((_) => _onOverdragUpdate());
@@ -333,7 +336,11 @@ class DragListState<T> extends State<DragList<T>>
         ? _scrollOffset < widget.items.length * widget.itemExtent - _listSize
         : _scrollOffset > 0;
     if (canScrollMore) {
-      final offsetDelta = 2.0 * (_dragsForwards ? 1 : -1);
+      final overdragScale = _dragsForwards
+          ? 1 -
+              (_listSize - (_localStart + _rawDelta)) / (widget.itemExtent / 2)
+          : -1 + (_localStart + _rawDelta) / (widget.itemExtent / 2);
+      final offsetDelta = 20.0 * overdragScale.clamp(-1.0, 1.0);
       _scrollController.jumpTo(_scrollOffset + offsetDelta);
       _overdragOffset += offsetDelta;
       _updateHoverIndex();
