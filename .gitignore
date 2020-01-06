@@ -5,6 +5,7 @@
 .pub/
 .idea/
 pubspec.lock
+.vscode
 
 build/
 ios/.generated/

@@ -2,6 +2,7 @@ import 'package:drag_list/src/DragItemStatus.dart';
 import 'package:flutter/material.dart';
 
 typedef Widget DragWidgetBuilder(BuildContext context, Widget handle);
+typedef void OffsetChanged(Offset value);
 
 class DragItem extends StatefulWidget {
   DragItem({
@@ -19,9 +20,9 @@ class DragItem extends StatefulWidget {
 
   final DragWidgetBuilder builder;
   final Widget handle;
-  final Function(Offset) onDragStop;
-  final Function(Offset) onDragUpdate;
-  final Function(Offset) onDragTouch;
+  final OffsetChanged onDragStop;
+  final OffsetChanged onDragUpdate;
+  final OffsetChanged onDragTouch;
   final double extent;
   final DragItemStatus status;
   final Duration animDuration;
