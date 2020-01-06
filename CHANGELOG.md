@@ -1,3 +1,7 @@
+## [1.0.5] - 06/01/2020
+
+* Added auto scroll when dragging an item feature
+
 ## [1.0.4] - 01/10/2019
 
 * Added scrollPhysics property

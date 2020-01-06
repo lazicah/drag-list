@@ -1,5 +1,5 @@
 # DragList
-Flutter list widget that allows to drag and drop items as well as define custom drag handle widget.
+Flutter list widget that allows to drag and drop items and define custom drag handle widget.
 
 ![DragList demo](https://giant.gfycat.com/BraveElegantDarklingbeetle.gif)
 
