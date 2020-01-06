@@ -1,4 +1,7 @@
 # DragList
+
+[![pub package](https://img.shields.io/pub/v/drag_list.svg)](https://pub.dartlang.org/packages/drag_list)
+
 Flutter list widget that allows to drag and drop items and define custom drag handle widget.
 
 ![DragList demo](https://giant.gfycat.com/BraveElegantDarklingbeetle.gif)
