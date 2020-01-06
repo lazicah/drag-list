@@ -1,4 +1,4 @@
-## [1.0.5] - 06/01/2020
+## [1.0.6] - 06/01/2020
 
 * Added auto scroll when dragging an item feature
 
