@@ -135,10 +135,10 @@ class DragListState<T> extends State<DragList<T>>
       itemExtent: widget.itemExtent,
       translation: _transAnim.value,
       elevation: _elevAnim.value,
-      child: widget.feedbackBuilder(
+      child: widget.feedbackItemBuilder(
         context,
         widget.items[_dragIndex],
-        widget.handleFeedbackBuilder(context, _animator),
+        widget.feedbackHandleBuilder(context, _animator),
         _animator,
       ),
     );
@@ -190,7 +190,7 @@ class DragListState<T> extends State<DragList<T>>
       key: _itemKeys.putIfAbsent(itemIndex, () => GlobalKey()),
       handle: widget.handleBuilder(context),
       builder: (context, handle) =>
-          widget.builder(context, widget.items[itemIndex], handle),
+          widget.itemBuilder(context, widget.items[itemIndex], handle),
       onDragTouch: (position) => _onItemDragTouch(itemIndex, position),
       onDragStop: (position) => _onItemDragStop(itemIndex, position),
       onDragUpdate: (delta) => _onItemDragUpdate(itemIndex, delta),
