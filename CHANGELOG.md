@@ -1,3 +1,7 @@
+## [1.0.7] - 13/02/2020
+
+* Added feedback widget builders
+
 ## [1.0.6] - 06/01/2020
 
 * Added auto scroll when dragging an item feature
