@@ -2,8 +2,14 @@ import 'package:drag_list/src/AxisDimen.dart';
 import 'package:drag_list/src/DragListState.dart';
 import 'package:flutter/material.dart';
 
-typedef Widget HandlelessBuilder<T>(BuildContext context, T item);
+typedef Widget HandlelessDragItemBuilder<T>(BuildContext context, T item);
 typedef Widget DragItemBuilder<T>(BuildContext context, T item, Widget handle);
+typedef Widget HandlelessFeedbackBuilder<T>(
+    BuildContext context, T item, Animation<double> transition);
+typedef Widget FeedbackBuilder<T>(
+    BuildContext context, T item, Widget handle, Animation<double> transition);
+typedef Widget HandleFeedbackBuilder(
+    BuildContext context, Animation<double> transition);
 typedef void ItemReorderCallback(int from, int to);
 
 class DragList<T> extends StatefulWidget with AxisDimen {
@@ -24,11 +30,19 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   /// Duration between list item touch and drag start.
   final Duration dragDelay;
 
-  /// Builder function that creates handle widget.
+  /// Builder function that creates handle widget for each element of the list.
   final WidgetBuilder handleBuilder;
 
-  /// Builder function that creates widget for eatch element of the list.
+  /// Builder function that creates widget for each element of the list.
   final DragItemBuilder<T> builder;
+
+  /// Builder function that creates handle widget of currently dragged item.
+  /// If null, [handleBuilder] function will be used instead.
+  final HandleFeedbackBuilder handleFeedbackBuilder;
+
+  /// Builder function that creates widget of currently dragged item.
+  /// If null, [builder] function will be used instead.
+  final FeedbackBuilder<T> feedbackBuilder;
 
   /// Callback function that invokes if dragged item changed
   /// its index and drag action is ended. By default this
@@ -62,7 +76,9 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     double handleAlignment,
     Axis scrollDirection,
     bool shrinkWrap,
-    this.handleBuilder,
+    FeedbackBuilder<T> feedbackBuilder,
+    HandleFeedbackBuilder handleFeedbackBuilder,
+    WidgetBuilder handleBuilder,
     this.onItemReorder,
     this.controller,
     this.padding,
@@ -72,6 +88,12 @@ class DragList<T> extends StatefulWidget with AxisDimen {
         this.handleAlignment = handleAlignment ?? 0.0,
         this.scrollDirection = scrollDirection ?? Axis.vertical,
         this.shrinkWrap = shrinkWrap ?? false,
+        this.handleBuilder =
+            handleBuilder ?? ((_) => _buildDefaultHandle(itemExtent)),
+        this.feedbackBuilder = feedbackBuilder ??
+            ((context, item, handle, _) => builder(context, item, handle)),
+        this.handleFeedbackBuilder =
+            handleFeedbackBuilder ?? ((context, _) => handleBuilder(context)),
         super(key: key) {
     assert(this.handleAlignment >= -1.0 && this.handleAlignment <= 1.0,
         'Handle alignment has to be in bounds (-1, 1) inclusive. Passed value was: $handleAlignment.');
@@ -80,8 +102,9 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   DragList.handleless({
     @required List<T> items,
     @required double itemExtent,
+    @required HandlelessDragItemBuilder<T> builder,
     Key key,
-    HandlelessBuilder<T> builder,
+    HandlelessFeedbackBuilder<T> feedbackBuilder,
     Duration animDuration,
     Duration dragDelay,
     double handleAlignment,
@@ -101,13 +124,22 @@ class DragList<T> extends StatefulWidget with AxisDimen {
           dragDelay: dragDelay ?? Duration(milliseconds: 300),
           onItemReorder: onItemReorder,
           handleBuilder: (_) => Container(),
-          builder: (context, item, handle) {
-            return Stack(children: [
-              builder(context, item),
-              Positioned.fill(child: handle),
-            ]);
-          },
+          builder: (context, item, handle) => Stack(children: [
+            builder(context, item),
+            Positioned.fill(child: handle),
+          ]),
+          feedbackBuilder: (context, item, _, transition) =>
+              feedbackBuilder(context, item, transition),
         );
+
+  static Widget _buildDefaultHandle(double itemExtent) {
+    final size = 24.0;
+    final padding = (itemExtent - size).clamp(0.0, 8.0);
+    return Padding(
+      padding: EdgeInsets.all(padding),
+      child: Icon(Icons.drag_handle, size: size),
+    );
+  }
 
   @override
   DragListState<T> createState() => DragListState<T>();
