@@ -2,8 +2,18 @@ import 'package:drag_list/src/AxisDimen.dart';
 import 'package:drag_list/src/DragListState.dart';
 import 'package:flutter/material.dart';
 
-typedef Widget HandlelessBuilder<T>(BuildContext context, T item);
 typedef Widget DragItemBuilder<T>(BuildContext context, T item, Widget handle);
+typedef Widget DragHandleBuilder(BuildContext context);
+
+typedef Widget FeedbackDragItemBuilder<T>(
+    BuildContext context, T item, Widget handle, Animation<double> transition);
+typedef Widget FeedbackDragHandleBuilder(
+    BuildContext context, Animation<double> transition);
+
+typedef Widget BareDragItemBuilder<T>(BuildContext context, T item);
+typedef Widget BareFeedbackDragItemBuilder<T>(
+    BuildContext context, T item, Animation<double> transition);
+
 typedef void ItemReorderCallback(int from, int to);
 
 class DragList<T> extends StatefulWidget with AxisDimen {
@@ -24,11 +34,19 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   /// Duration between list item touch and drag start.
   final Duration dragDelay;
 
-  /// Builder function that creates handle widget.
-  final WidgetBuilder handleBuilder;
+  /// Builder function that creates handle widget for each element of the list.
+  final DragHandleBuilder handleBuilder;
 
-  /// Builder function that creates widget for eatch element of the list.
-  final DragItemBuilder<T> builder;
+  /// Builder function that creates widget for each element of the list.
+  final DragItemBuilder<T> itemBuilder;
+
+  /// Builder function that creates handle widget of currently dragged item.
+  /// If null, [handleBuilder] function will be used instead.
+  final FeedbackDragHandleBuilder feedbackHandleBuilder;
+
+  /// Builder function that creates widget of currently dragged item.
+  /// If null, [builder] function will be used instead.
+  final FeedbackDragItemBuilder<T> feedbackItemBuilder;
 
   /// Callback function that invokes if dragged item changed
   /// its index and drag action is ended. By default this
@@ -55,14 +73,16 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   DragList({
     @required this.items,
     @required this.itemExtent,
-    @required this.builder,
+    @required this.itemBuilder,
     Key key,
     Duration animDuration,
     Duration dragDelay,
     double handleAlignment,
     Axis scrollDirection,
     bool shrinkWrap,
-    this.handleBuilder,
+    FeedbackDragItemBuilder<T> feedbackItemBuilder,
+    FeedbackDragHandleBuilder feedbackHandleBuilder,
+    WidgetBuilder handleBuilder,
     this.onItemReorder,
     this.controller,
     this.padding,
@@ -72,6 +92,12 @@ class DragList<T> extends StatefulWidget with AxisDimen {
         this.handleAlignment = handleAlignment ?? 0.0,
         this.scrollDirection = scrollDirection ?? Axis.vertical,
         this.shrinkWrap = shrinkWrap ?? false,
+        this.handleBuilder = handleBuilder ??=
+            ((_) => Center(child: Icon(Icons.drag_handle, size: 24.0))),
+        this.feedbackItemBuilder = feedbackItemBuilder ??=
+            ((context, item, handle, _) => itemBuilder(context, item, handle)),
+        this.feedbackHandleBuilder =
+            feedbackHandleBuilder ??= ((context, _) => handleBuilder(context)),
         super(key: key) {
     assert(this.handleAlignment >= -1.0 && this.handleAlignment <= 1.0,
         'Handle alignment has to be in bounds (-1, 1) inclusive. Passed value was: $handleAlignment.');
@@ -80,8 +106,9 @@ class DragList<T> extends StatefulWidget with AxisDimen {
   DragList.handleless({
     @required List<T> items,
     @required double itemExtent,
+    @required BareDragItemBuilder<T> itemBuilder,
     Key key,
-    HandlelessBuilder<T> builder,
+    BareFeedbackDragItemBuilder<T> feedbackItemBuilder,
     Duration animDuration,
     Duration dragDelay,
     double handleAlignment,
@@ -93,7 +120,6 @@ class DragList<T> extends StatefulWidget with AxisDimen {
           items: items,
           itemExtent: itemExtent,
           key: key,
-          handleAlignment: handleAlignment,
           scrollDirection: scrollDirection,
           physics: physics,
           shrinkWrap: shrinkWrap,
@@ -101,12 +127,12 @@ class DragList<T> extends StatefulWidget with AxisDimen {
           dragDelay: dragDelay ?? Duration(milliseconds: 300),
           onItemReorder: onItemReorder,
           handleBuilder: (_) => Container(),
-          builder: (context, item, handle) {
-            return Stack(children: [
-              builder(context, item),
-              Positioned.fill(child: handle),
-            ]);
-          },
+          itemBuilder: (context, item, handle) => Stack(children: [
+            itemBuilder(context, item),
+            Positioned.fill(child: handle),
+          ]),
+          feedbackItemBuilder: (context, item, _, transition) =>
+              feedbackItemBuilder(context, item, transition),
         );
 
   @override

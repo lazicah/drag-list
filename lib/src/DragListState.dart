@@ -44,8 +44,6 @@ class DragListState<T> extends State<DragList<T>>
   double get _listSize => widget.axisSize(_listBox.size);
   double get _handleCenterOffset =>
       widget.itemExtent * (1 + widget.handleAlignment) / 2;
-  WidgetBuilder get _handleBuilder =>
-      widget.handleBuilder ?? (_) => _buildDefaultHandle();
 
   @override
   void didUpdateWidget(DragList<T> oldWidget) {
@@ -137,10 +135,11 @@ class DragListState<T> extends State<DragList<T>>
       itemExtent: widget.itemExtent,
       translation: _transAnim.value,
       elevation: _elevAnim.value,
-      child: widget.builder(
+      child: widget.feedbackItemBuilder(
         context,
         widget.items[_dragIndex],
-        _handleBuilder(context),
+        widget.feedbackHandleBuilder(context, _animator),
+        _animator,
       ),
     );
   }
@@ -189,9 +188,9 @@ class DragListState<T> extends State<DragList<T>>
   Widget _buildDragItem(BuildContext context, int itemIndex, int dispIndex) {
     return DragItem(
       key: _itemKeys.putIfAbsent(itemIndex, () => GlobalKey()),
-      handle: _handleBuilder(context),
+      handle: widget.handleBuilder(context),
       builder: (context, handle) =>
-          widget.builder(context, widget.items[itemIndex], handle),
+          widget.itemBuilder(context, widget.items[itemIndex], handle),
       onDragTouch: (position) => _onItemDragTouch(itemIndex, position),
       onDragStop: (position) => _onItemDragStop(itemIndex, position),
       onDragUpdate: (delta) => _onItemDragUpdate(itemIndex, delta),
@@ -386,14 +385,5 @@ class DragListState<T> extends State<DragList<T>>
   void _stopOverdrag() {
     _overdragSub?.cancel();
     _overdragSub = null;
-  }
-
-  Widget _buildDefaultHandle() {
-    final size = 24.0;
-    final padding = (widget.itemExtent - size).clamp(0.0, 8.0);
-    return Padding(
-      padding: EdgeInsets.all(padding),
-      child: Icon(Icons.drag_handle, size: size),
-    );
   }
 }

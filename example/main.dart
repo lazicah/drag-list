@@ -17,29 +17,24 @@ class CountriesPage extends StatelessWidget {
           child: DragList<String>(
             items: _countries,
             itemExtent: _itemHeight,
-            handleBuilder: (_) {
-              return Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
-                child: FloatingActionButton(
-                  elevation: 2.0,
-                  backgroundColor: Colors.orange,
-                  child: Text("⚛️️"),
-                  onPressed: () {},
-                ),
-              );
-            },
-            builder: (_, item, handle) {
-              return Container(
-                height: _itemHeight,
-                child: Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Row(children: [
-                    Expanded(child: Center(child: Text(item))),
-                    handle,
-                  ]),
-                ),
-              );
-            },
+            handleBuilder: (_) => AnimatedIcon(
+              icon: AnimatedIcons.menu_arrow,
+              progress: AlwaysStoppedAnimation(0.0),
+            ),
+            feedbackHandleBuilder: (_, transition) => AnimatedIcon(
+              icon: AnimatedIcons.menu_arrow,
+              progress: transition,
+            ),
+            itemBuilder: (_, item, handle) => Container(
+              height: _itemHeight,
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Row(children: [
+                  Expanded(child: Center(child: Text(item))),
+                  handle,
+                ]),
+              ),
+            ),
           ),
         ),
       ),
