@@ -1,3 +1,7 @@
+## [1.0.8] - 27/04/2020
+
+* Added `DragItem` that provides index values in builders
+
 ## [1.0.7] - 13/02/2020
 
 * Added feedback widget builders
