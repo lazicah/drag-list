@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:async/async.dart';
-import 'package:drag_list/src/DragItem.dart';
-import 'package:drag_list/src/DragItemStatus.dart';
-import 'package:drag_list/src/DragList.dart';
-import 'package:drag_list/src/DragOverlay.dart';
 import 'package:flutter/material.dart';
+
+import 'drag_item_status.dart';
+import 'drag_list.dart';
+import 'drag_list_item.dart';
+import 'drag_overlay.dart';
 
 class DragListState<T> extends State<DragList<T>>
     with SingleTickerProviderStateMixin {

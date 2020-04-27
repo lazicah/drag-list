@@ -1,5 +1,6 @@
-import 'package:drag_list/src/DragItemStatus.dart';
 import 'package:flutter/material.dart';
+
+import 'drag_item_status.dart';
 
 typedef Widget DragListItemBuilder(BuildContext context, Widget handle);
 typedef void OffsetChanged(Offset value);

@@ -1,6 +1,7 @@
-import 'package:drag_list/src/AxisDimen.dart';
-import 'package:drag_list/src/DragListState.dart';
 import 'package:flutter/material.dart';
+
+import 'axis_dimen.dart';
+import 'drag_list_state.dart';
 
 typedef Widget DragItemBuilder<T>(
     BuildContext context, DragItem<T> item, Widget handle);
