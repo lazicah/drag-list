@@ -9,7 +9,7 @@ class DragOverlay extends StatelessWidget {
     @required this.itemExtent,
     @required RenderBox listBox,
     @required Axis scrollDirection,
-  })  : this.directedBuilder = _DirectedOverlayBuilder(scrollDirection),
+  })  : this.axisBuilder = AxisOverlayBuilder(scrollDirection),
         this.listPos = listBox.localToGlobal(Offset.zero),
         this.listSize = listBox.size;
 
@@ -20,18 +20,18 @@ class DragOverlay extends StatelessWidget {
   final double translation;
   final double itemStart;
   final double itemExtent;
-  final _DirectedOverlayBuilder directedBuilder;
+  final AxisOverlayBuilder axisBuilder;
 
   @override
   Widget build(BuildContext context) {
-    return directedBuilder.builGlobalPos(
+    return axisBuilder.builGlobalPos(
       overlay: this,
       child: ClipRect(
         child: Stack(children: [
-          directedBuilder.buildLocalPos(
+          axisBuilder.buildLocalPos(
               overlay: this,
               child: Transform.translate(
-                offset: directedBuilder.buildTransOffset(translation),
+                offset: axisBuilder.buildTransOffset(translation),
                 child: Material(
                   elevation: elevation,
                   child: child,
@@ -43,20 +43,20 @@ class DragOverlay extends StatelessWidget {
   }
 }
 
-abstract class _DirectedOverlayBuilder {
-  _DirectedOverlayBuilder._();
+abstract class AxisOverlayBuilder {
+  AxisOverlayBuilder._();
 
   Positioned builGlobalPos({DragOverlay overlay, Widget child});
   Positioned buildLocalPos({DragOverlay overlay, Widget child});
   Offset buildTransOffset(double translation);
 
-  factory _DirectedOverlayBuilder(Axis scrollDirection) =>
+  factory AxisOverlayBuilder(Axis scrollDirection) =>
       scrollDirection == Axis.vertical
           ? _VerticalBuilder()
           : _HorizontalBuilder();
 }
 
-class _VerticalBuilder extends _DirectedOverlayBuilder {
+class _VerticalBuilder extends AxisOverlayBuilder {
   _VerticalBuilder() : super._();
 
   @override
@@ -85,7 +85,7 @@ class _VerticalBuilder extends _DirectedOverlayBuilder {
   Offset buildTransOffset(double translation) => Offset(0.0, translation);
 }
 
-class _HorizontalBuilder extends _DirectedOverlayBuilder {
+class _HorizontalBuilder extends AxisOverlayBuilder {
   _HorizontalBuilder() : super._();
 
   @override
