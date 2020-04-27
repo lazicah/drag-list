@@ -1,7 +1,7 @@
 import 'package:drag_list/src/DragItemStatus.dart';
 import 'package:flutter/material.dart';
 
-typedef Widget DragWidgetBuilder(BuildContext context, Widget handle);
+typedef Widget DragListItemBuilder(BuildContext context, Widget handle);
 typedef void OffsetChanged(Offset value);
 
 class DragListItem extends StatefulWidget {
@@ -18,7 +18,7 @@ class DragListItem extends StatefulWidget {
     @required this.scrollDirection,
   }) : super(key: key);
 
-  final DragWidgetBuilder builder;
+  final DragListItemBuilder builder;
   final Widget handle;
   final OffsetChanged onDragStop;
   final OffsetChanged onDragUpdate;
