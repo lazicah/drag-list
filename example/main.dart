@@ -30,7 +30,7 @@ class CountriesPage extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Row(children: [
-                  Expanded(child: Center(child: Text(item))),
+                  Expanded(child: Center(child: Text(item.value))),
                   handle,
                 ]),
               ),

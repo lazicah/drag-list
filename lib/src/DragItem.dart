@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 typedef Widget DragWidgetBuilder(BuildContext context, Widget handle);
 typedef void OffsetChanged(Offset value);
 
-class DragItem extends StatefulWidget {
-  DragItem({
+class DragListItem extends StatefulWidget {
+  DragListItem({
     @required Key key,
     @required this.builder,
     @required this.handle,
@@ -29,10 +29,10 @@ class DragItem extends StatefulWidget {
   final Axis scrollDirection;
 
   @override
-  DragItemState createState() => DragItemState();
+  DragListItemState createState() => DragListItemState();
 }
 
-class DragItemState extends State<DragItem>
+class DragListItemState extends State<DragListItem>
     with SingleTickerProviderStateMixin {
   AnimationController _animator;
   Animation<double> _transAnim;
@@ -58,7 +58,7 @@ class DragItemState extends State<DragItem>
   }
 
   @override
-  void didUpdateWidget(DragItem old) {
+  void didUpdateWidget(DragListItem old) {
     super.didUpdateWidget(old);
     if (widget.status != old.status) {
       _prevStatus = _status;

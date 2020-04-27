@@ -2,19 +2,32 @@ import 'package:drag_list/src/AxisDimen.dart';
 import 'package:drag_list/src/DragListState.dart';
 import 'package:flutter/material.dart';
 
-typedef Widget DragItemBuilder<T>(BuildContext context, T item, Widget handle);
+typedef Widget DragItemBuilder<T>(
+    BuildContext context, DragItem<T> item, Widget handle);
 typedef Widget DragHandleBuilder(BuildContext context);
 
-typedef Widget FeedbackDragItemBuilder<T>(
-    BuildContext context, T item, Widget handle, Animation<double> transition);
+typedef Widget FeedbackDragItemBuilder<T>(BuildContext context,
+    DragItem<T> item, Widget handle, Animation<double> transition);
 typedef Widget FeedbackDragHandleBuilder(
     BuildContext context, Animation<double> transition);
 
-typedef Widget BareDragItemBuilder<T>(BuildContext context, T item);
+typedef Widget BareDragItemBuilder<T>(BuildContext context, DragItem<T> item);
 typedef Widget BareFeedbackDragItemBuilder<T>(
-    BuildContext context, T item, Animation<double> transition);
+    BuildContext context, DragItem<T> item, Animation<double> transition);
 
 typedef void ItemReorderCallback(int from, int to);
+
+class DragItem<T> {
+  final T value;
+  final int itemIndex;
+  final int dispIndex;
+
+  DragItem(this.value, this.itemIndex, this.dispIndex);
+
+  @override
+  String toString() =>
+      "DragItem<$T>(value: $value, itemIndex: $itemIndex, dispIndex: $dispIndex)";
+}
 
 class DragList<T> extends StatefulWidget with AxisDimen {
   /// List of items displayed in the list.
@@ -82,7 +95,7 @@ class DragList<T> extends StatefulWidget with AxisDimen {
     bool shrinkWrap,
     FeedbackDragItemBuilder<T> feedbackItemBuilder,
     FeedbackDragHandleBuilder feedbackHandleBuilder,
-    WidgetBuilder handleBuilder,
+    DragHandleBuilder handleBuilder,
     this.onItemReorder,
     this.controller,
     this.padding,
