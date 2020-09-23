@@ -4,7 +4,7 @@
 
 Flutter list widget that allows to drag and drop items and define custom drag handle widget.
 
-![DragList demo](https://giant.gfycat.com/BraveElegantDarklingbeetle.gif)
+![DragList demo](https://j.gifs.com/91WqX4.gif)
 
 ## Getting Started
 
